@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "428117485778",
+    "project_id": "learnpiano-712ce",
+    "storage_bucket": "learnpiano-712ce.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:428117485778:android:a8ee213ea93644ad55650b",
+        "android_client_info": {
+          "package_name": "com.example.learnpiano.learn_piano"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDlTC0dWJWH478HL9uVk56KAhcfDGwsUuQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
