@@ -1,127 +1,260 @@
 import 'package:flutter/material.dart';
+import 'package:learn_piano/theory.dart';
 import 'piano_challenge.dart';
-
+import 'theory.dart';
+import 'sheet_music.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.pink,
+      backgroundColor: Colors.grey[900], // Nền tối hơn
       appBar: AppBar(
         backgroundColor: Colors.black,
-        elevation: 0,
+        elevation: 2,
         title: const Text(
           "Học Piano",
-          style: TextStyle(color: Colors.white, fontSize: 30),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
         ),
         actions: [
-          IconButton(icon: const Icon(Icons.more_vert), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.notifications, color: Colors.white),
+            onPressed: () {},
+          ),
+          IconButton(
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+            onPressed: () {},
+          ),
         ],
       ),
       drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(color: Colors.teal),
-              child: Text(
-                "Menu",
-                style: TextStyle(color: Colors.white, fontSize: 24),
+        child: Container(
+          color: Colors.grey[850],
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              DrawerHeader(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.black, Colors.grey[800]!],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: const Text(
+                  "Menu",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.emoji_events, color: Colors.teal),
-              title: const Text("Thành tựu"),
-              onTap: () {},
-            ),
-            ListTile(
-              leading: const Icon(Icons.equalizer, color: Colors.teal),
-              title: const Text("Phân tích"),
-              onTap: () {},
-            ),
-            ListTile(
-              leading: const Icon(Icons.music_note, color: Colors.teal),
-              title: const Text("Khóa nhạc"),
-              onTap: () {},
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings, color: Colors.teal),
-              title: const Text("Cài đặt"),
-              onTap: () {},
-            ),
-          ],
+              _buildDrawerItem(Icons.emoji_events, "Thành tựu", () {}),
+              _buildDrawerItem(Icons.equalizer, "Phân tích", () {}),
+              _buildDrawerItem(Icons.music_note, "Khóa nhạc", () {}),
+              _buildDrawerItem(Icons.settings, "Cài đặt", () {}),
+            ],
+          ),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildStatCircle("Bài tập", "0", Icons.check_circle),
-                _buildStatCircle("Điểm ", "0", Icons.show_chart),
-                _buildStatCircle("Giây ", "0", Icons.timer),
-              ],
-            ),
-            const SizedBox(height: 30),
-            Row(
-              children: [
-                const CircleAvatar(
-                  backgroundColor: Colors.amber,
-                  child: Text("A", style: TextStyle(color: Colors.black)),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Thanh tiến độ
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 10),
-                const Expanded(child:
-                Text("Tiếp tục\nbài tập"),)
-              ],
-            )
-          ],
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildStatCircle("Bài tập", "0", Icons.check_circle, Colors.blueAccent),
+                    _buildStatCircle("Điểm", "0", Icons.show_chart, Colors.greenAccent),
+                    _buildStatCircle("Giây", "0", Icons.timer, Colors.orangeAccent),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Featured Section
+              const Text(
+                "Khám phá ngay",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              _buildFeaturedCard(
+                context,
+                "Nhận diện phím đàn",
+                Icons.music_note,
+                Colors.blue[700]!,
+                const PianoChallenge(),
+              ),
+              _buildFeaturedCard(
+                context,
+                "Bàn phím Piano",
+                Icons.piano,
+                Colors.red[700]!,
+                const PianoChallenge(),
+              ),
+              const SizedBox(height: 20),
+              // Menu Grid
+              const Text(
+                "Công cụ học tập",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                children: [
+                  _buildMenuTile("Luyện cảm âm", Icons.hearing, Colors.purple[600]!, () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const PianoChallenge()));
+                  }),
+                  _buildMenuTile("Luyện nhịp", Icons.music_note, Colors.teal[600]!, () {}),
+                  _buildMenuTile("Lý thuyết", Icons.book, Colors.indigo[600]!, () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const TheoryScreen()));
+                  }),
+                  _buildMenuTile("Sheet nhạc", Icons.my_library_books, Colors.orange[600]!, () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context)=> const SheetMusic()));
+                  }),
+                  _buildMenuTile("Học khóa nhạc", Icons.music_note, Colors.green[600]!, () {}),
+                  _buildMenuTile("Thành tựu", Icons.emoji_events, Colors.yellow[700]!, () {}),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildStatCircle(String title, String value, IconData icon) {
+  Widget _buildDrawerItem(IconData icon, String title, VoidCallback onTap) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.white),
+      title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 18)),
+      onTap: onTap,
+      tileColor: Colors.transparent,
+      hoverColor: Colors.grey[700],
+    );
+  }
+
+  Widget _buildStatCircle(String title, String value, IconData icon, Color accentColor) {
     return Column(
       children: [
         CircleAvatar(
-          radius: 30,
-          backgroundColor: Colors.grey[800],
-          child: Icon(icon, size: 30, color: Colors.white),
+          radius: 28,
+          backgroundColor: accentColor,
+          child: Icon(icon, size: 28, color: Colors.white),
         ),
-        const SizedBox(height: 5),
+        const SizedBox(height: 8),
         Text(
           value,
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 18,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
         ),
         Text(
           title,
-          style: const TextStyle(color: Colors.grey),
+          style: TextStyle(color: Colors.grey[400], fontSize: 14),
         ),
       ],
     );
   }
 
-  Widget _buildMenuTile(String title, IconData icon, VoidCallback onTap) {
+  Widget _buildFeaturedCard(BuildContext context, String title, IconData icon, Color color, Widget destination) {
+    return Card(
+      color: Colors.black,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: color,
+              child: Icon(icon, color: Colors.white),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => destination));
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: color,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text("Bắt đầu", style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuTile(String title, IconData icon, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.grey[900],
-          borderRadius: BorderRadius.circular(10),
+          gradient: LinearGradient(
+            colors: [color, Colors.black],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 40, color: Colors.teal),
-            const SizedBox(height: 10),
+            Icon(icon, size: 40, color: Colors.white),
+            const SizedBox(height: 12),
             Text(
               title,
               textAlign: TextAlign.center,

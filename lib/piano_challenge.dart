@@ -4,11 +4,9 @@ import 'package:flutter/material.dart';
 
 class PianoChallenge extends StatefulWidget {
   const PianoChallenge({super.key});
-
   @override
   State<PianoChallenge> createState() => _PianoChallengeState();
 }
-
 class _PianoChallengeState extends State<PianoChallenge> {
   final List<String> whiteNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
   final List<Color> colors = [
@@ -106,17 +104,22 @@ class _PianoChallengeState extends State<PianoChallenge> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.black,
+        elevation: 0,
         title: const Text(
-          "Đoán phím đàn: ",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          "Nhận diện phím đàn",
+          style: TextStyle(color: Colors.white, fontSize: 30),
         ),
+        actions: [
+          IconButton(icon: const Icon(Icons.more_vert), onPressed: () {}),
+        ],
       ),
       body: Column(
         children: [
           Expanded(
+            flex: 2,
             child: Container(
-              padding: const EdgeInsets.all(40),
-              color: Colors.white,
+              padding: const EdgeInsets.all(60),
+              color: Colors.grey[900],
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -124,7 +127,7 @@ class _PianoChallengeState extends State<PianoChallenge> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.music_note, size: 30),
+                        const Icon(Icons.music_note, size: 30, color: Colors.white,),
                         RichText(
                           text: TextSpan(
                             style: const TextStyle(
@@ -134,7 +137,7 @@ class _PianoChallengeState extends State<PianoChallenge> {
                             children: [
                               const TextSpan(
                                 text: "Nhấn phím: ",
-                                style: TextStyle(color: Colors.black),
+                                style: TextStyle(color: Colors.white),
                               ),
                               TextSpan(
                                 text: "$currentTargetNote",
@@ -147,7 +150,7 @@ class _PianoChallengeState extends State<PianoChallenge> {
                     ),
                     Text(
                       "Điểm: $score",
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold,color: Colors.white),
                     ),
                   ],
                 ),
@@ -155,11 +158,10 @@ class _PianoChallengeState extends State<PianoChallenge> {
             ),
           ),
           Expanded(
-            flex: 1,
             child: Stack(
               children: [
                 Positioned(
-                  top: 150,
+                  top: 0,
                   left: 0,
                   right: 0,
                   bottom: 0,
@@ -194,7 +196,7 @@ class _PianoChallengeState extends State<PianoChallenge> {
                   ),
                 ),
                 Positioned(
-                  top: 150,
+                  top: 3,
                   left: 0,
                   right: 0,
                   child: Row(
