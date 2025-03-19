@@ -1,69 +1,125 @@
 import 'package:flutter/material.dart';
-class TheoryScreen extends StatelessWidget{
-  const TheoryScreen ({super.key});
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+class TheoryPage extends StatelessWidget {
+  // Hàm để thêm dữ liệu mẫu vào Firestore
+  Future<void> addSampleData() async {
+    // Thêm dữ liệu vào collection "notes"
+
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text(
-          "Lý thuyết",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context); // Quay lại HomeScreen
-          },
-        ),
+        title: Text('Piano Theory'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-            const SizedBox(height: 20),
-            _buildTheoryOption(
-              context,
-              "Lý thuyết về cách xác định phím đàn",
-              "Học cách nhận biết và xác định các phím trên đàn piano.",
+            // Nút để thêm dữ liệu mẫu
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ElevatedButton(
+                onPressed: () async {
+                  await addSampleData();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Sample data added to Firestore')),
+                  );
+                },
+                child: Text('Add Sample Data to Firestore'),
+              ),
             ),
-            _buildTheoryOption(
-              context,
-              "Hợp âm",
-              "Tìm hiểu về các loại hợp âm và cách chơi chúng.",
+            // Hiển thị danh sách nốt nhạc
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(
+                'Notes',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
             ),
-            // Thêm các lựa chọn khác nếu cần
+            StreamBuilder(
+              stream: FirebaseFirestore.instance.collection('notes').snapshots(),
+              builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                if (!snapshot.hasData) {
+                  return Center(child: CircularProgressIndicator());
+                }
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  itemCount: snapshot.data!.docs.length,
+                  itemBuilder: (context, index) {
+                    var doc = snapshot.data!.docs[index];
+                    return ListTile(
+                      title: Text(doc['name']),
+                      subtitle: Text(doc['description']),
+                      trailing: Text('Frequency: ${doc['frequency']} Hz'),
+                    );
+                  },
+                );
+              },
+            ),
+            // Hiển thị danh sách hợp âm
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(
+                'Chords',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+            StreamBuilder(
+              stream: FirebaseFirestore.instance.collection('chords').snapshots(),
+              builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                if (!snapshot.hasData) {
+                  return Center(child: CircularProgressIndicator());
+                }
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  itemCount: snapshot.data!.docs.length,
+                  itemBuilder: (context, index) {
+                    var doc = snapshot.data!.docs[index];
+                    return ListTile(
+                      title: Text(doc['name']),
+                      subtitle: Text(doc['description']),
+                      trailing: Text('Notes: ${doc['notes'].join(', ')}'),
+                    );
+                  },
+                );
+              },
+            ),
+            // Hiển thị danh sách bài học
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(
+                'Lessons',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+            StreamBuilder(
+              stream: FirebaseFirestore.instance.collection('lessons').snapshots(),
+              builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                if (!snapshot.hasData) {
+                  return Center(child: CircularProgressIndicator());
+                }
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  itemCount: snapshot.data!.docs.length,
+                  itemBuilder: (context, index) {
+                    var doc = snapshot.data!.docs[index];
+                    return ListTile(
+                      title: Text(doc['title']),
+                      subtitle: Text(doc['content']),
+                      trailing: Text('Level: ${doc['level']}'),
+                    );
+                  },
+                );
+              },
+            ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildTheoryOption(BuildContext context, String title, String description) {
-    return Card(
-      color: Colors.grey[800],
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      child: ListTile(
-        title: Text(
-          title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        subtitle: Text(
-          description,
-          style: const TextStyle(color: Colors.grey),
-        ),
-        onTap: () {
-          // Điều hướng đến trang chi tiết (có thể mở rộng sau)
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Đang phát triển: $title")),
-          );
-        },
       ),
     );
   }
