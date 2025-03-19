@@ -6,9 +6,12 @@ import 'home_screen.dart';
 import 'sheet_music.dart';
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await Firebase.initializeApp();
+    print("Firebase initialized successfully");
+  } catch (e) {
+    print("Lỗi khi khởi tạo Firebase: $e");
+  }
   runApp(const LearnPiano());
 }
 class LearnPiano extends StatelessWidget{

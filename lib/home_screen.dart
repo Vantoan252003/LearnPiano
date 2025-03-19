@@ -143,7 +143,7 @@ class HomeScreen extends StatelessWidget {
                     Navigator.push(context, MaterialPageRoute(builder: (context) => const TheoryScreen()));
                   }),
                   _buildMenuTile("Sheet nhạc", Icons.my_library_books, Colors.orange[600]!, () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context)=> const SheetMusic()));
+                    Navigator.push(context, MaterialPageRoute(builder: (context)=>  SheetMusic()));
                   }),
                   _buildMenuTile("Học khóa nhạc", Icons.music_note, Colors.green[600]!, () {}),
                   _buildMenuTile("Thành tựu", Icons.emoji_events, Colors.yellow[700]!, () {}),
