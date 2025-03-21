@@ -5,15 +5,12 @@ class TheoryPage extends StatelessWidget {
   // Hàm để thêm dữ liệu mẫu vào Firestore
   Future<void> addSampleData() async {
     // Thêm dữ liệu vào collection "notes"
-
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Piano Theory'),
-      ),
+      appBar: AppBar(title: Text('Piano Theory')),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -31,6 +28,33 @@ class TheoryPage extends StatelessWidget {
                 child: Text('Add Sample Data to Firestore'),
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(
+                'Lý thuyết phím đàn',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+            StreamBuilder(
+              stream:
+                  FirebaseFirestore.instance
+                      .collection('piano_keyboard')
+                      .snapshots(),
+              builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                if (!snapshot.hasData) {
+                  return Center(child: CircularProgressIndicator());
+                }
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  itemCount: snapshot.data!.docs.length,
+                  itemBuilder: (context, index) {
+                    var doc = snapshot.data!.docs[index];
+                    return ListTile(subtitle: Text(doc['theory']));
+                  },
+                );
+              },
+            ),
             // Hiển thị danh sách nốt nhạc
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -40,7 +64,8 @@ class TheoryPage extends StatelessWidget {
               ),
             ),
             StreamBuilder(
-              stream: FirebaseFirestore.instance.collection('notes').snapshots(),
+              stream:
+                  FirebaseFirestore.instance.collection('notes').snapshots(),
               builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                 if (!snapshot.hasData) {
                   return Center(child: CircularProgressIndicator());
@@ -69,7 +94,8 @@ class TheoryPage extends StatelessWidget {
               ),
             ),
             StreamBuilder(
-              stream: FirebaseFirestore.instance.collection('chords').snapshots(),
+              stream:
+                  FirebaseFirestore.instance.collection('chords').snapshots(),
               builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                 if (!snapshot.hasData) {
                   return Center(child: CircularProgressIndicator());
@@ -98,7 +124,8 @@ class TheoryPage extends StatelessWidget {
               ),
             ),
             StreamBuilder(
-              stream: FirebaseFirestore.instance.collection('lessons').snapshots(),
+              stream:
+                  FirebaseFirestore.instance.collection('lessons').snapshots(),
               builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                 if (!snapshot.hasData) {
                   return Center(child: CircularProgressIndicator());
