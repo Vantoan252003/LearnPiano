@@ -10,7 +10,10 @@ class TheoryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Piano Theory')),
+      backgroundColor: Colors.grey[900],
+      appBar: AppBar(
+          backgroundColor: Colors.black,
+          title: Text(style: TextStyle(color: Colors.white), 'Piano Theory')),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -32,7 +35,7 @@ class TheoryPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
                 'Lý thuyết phím đàn',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
               ),
             ),
             StreamBuilder(
@@ -50,7 +53,7 @@ class TheoryPage extends StatelessWidget {
                   itemCount: snapshot.data!.docs.length,
                   itemBuilder: (context, index) {
                     var doc = snapshot.data!.docs[index];
-                    return ListTile(subtitle: Text(doc['theory']));
+                    return ListTile(subtitle: Text(style: TextStyle(color: Colors.white,fontSize: 15),doc['theory']));
                   },
                 );
               },
@@ -60,7 +63,7 @@ class TheoryPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
                 'Notes',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: TextStyle(color: Colors.white,fontSize: 20, fontWeight: FontWeight.bold),
               ),
             ),
             StreamBuilder(
@@ -77,9 +80,9 @@ class TheoryPage extends StatelessWidget {
                   itemBuilder: (context, index) {
                     var doc = snapshot.data!.docs[index];
                     return ListTile(
-                      title: Text(doc['name']),
-                      subtitle: Text(doc['description']),
-                      trailing: Text('Frequency: ${doc['frequency']} Hz'),
+                      title: Text(style: TextStyle(color: Colors.white,fontSize: 15),doc['name']),
+                      subtitle: Text(style: TextStyle(color: Colors.white,fontSize: 15),doc['description']),
+                      trailing: Text(style: TextStyle(color: Colors.white,fontSize: 15),'Frequency: ${doc['frequency']} Hz'),
                     );
                   },
                 );
@@ -90,7 +93,7 @@ class TheoryPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
                 'Chords',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
               ),
             ),
             StreamBuilder(
@@ -107,9 +110,9 @@ class TheoryPage extends StatelessWidget {
                   itemBuilder: (context, index) {
                     var doc = snapshot.data!.docs[index];
                     return ListTile(
-                      title: Text(doc['name']),
-                      subtitle: Text(doc['description']),
-                      trailing: Text('Notes: ${doc['notes'].join(', ')}'),
+                      title: Text(style: TextStyle(color: Colors.white,fontSize: 15),doc['name']),
+                      subtitle: Text(style: TextStyle(color: Colors.white,fontSize: 15),doc['description']),
+                      trailing: Text(style: TextStyle(color: Colors.white,fontSize: 15),'Notes: ${doc['notes'].join(', ')}'),
                     );
                   },
                 );
@@ -120,7 +123,7 @@ class TheoryPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
                 'Lessons',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
               ),
             ),
             StreamBuilder(
@@ -137,9 +140,9 @@ class TheoryPage extends StatelessWidget {
                   itemBuilder: (context, index) {
                     var doc = snapshot.data!.docs[index];
                     return ListTile(
-                      title: Text(doc['title']),
-                      subtitle: Text(doc['content']),
-                      trailing: Text('Level: ${doc['level']}'),
+                      title: Text(style: TextStyle(color: Colors.white,fontSize: 15),doc['title']),
+                      subtitle: Text(style: TextStyle(color: Colors.white,fontSize: 15),doc['content']),
+                      trailing: Text(style: TextStyle(color: Colors.white,fontSize: 15),'Level: ${doc['level']}'),
                     );
                   },
                 );
