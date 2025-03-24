@@ -9,6 +9,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.3.53"
+  archive:
+    dependency: "direct main"
+    description:
+      name: archive
+      sha256: "7dcbd0f87fe5f61cb28da39a1a8b70dbc106e2fe0516f7836eb7bb2948481a12"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.5"
   async:
     dependency: transitive
     description:
@@ -254,14 +262,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.0.0"
-  flutter_pdfview:
+  flutter_midi_pro:
     dependency: "direct main"
     description:
-      name: flutter_pdfview
-      sha256: "2e3fa359524e9865ec25a64593b65092b4a9974c5871228c1a771300a003d150"
+      name: flutter_midi_pro
+      sha256: d0e4329b5212102303a9b04bf3a9581897e4556a0612c963f526833fa804248e
       url: "https://pub.dev"
     source: hosted
-    version: "1.4.0"
+    version: "3.1.4"
+  flutter_piano_pro:
+    dependency: "direct main"
+    description:
+      name: flutter_piano_pro
+      sha256: "50fc834e9022254b55562399e1af5adc45d4364096feb361e3b8a36b09d186d2"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.6.0"
   flutter_plugin_android_lifecycle:
     dependency: transitive
     description:
@@ -360,6 +376,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.16.0"
+  music_xml:
+    dependency: "direct main"
+    description:
+      name: music_xml
+      sha256: ee4405f4bd1bbdd4e19ed1eb84e18c27f991f99ecf3908c6cd2864eef8ffa376
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.3.0"
   path:
     dependency: transitive
     description:
@@ -440,6 +464,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.8"
+  posix:
+    dependency: transitive
+    description:
+      name: posix
+      sha256: a0117dc2167805aa9125b82eee515cc891819bac2f538c83646d355b16f58b9a
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.0.1"
   sky_engine:
     dependency: transitive
     description: flutter

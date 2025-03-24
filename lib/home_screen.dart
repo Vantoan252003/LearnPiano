@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:learn_piano/play_sheet.dart';
 import 'package:learn_piano/theory.dart';
 import 'piano_challenge.dart';
 import 'theory.dart';
 import 'sheet_music.dart';
+import 'package:learn_piano/piano_keyboard.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
   @override
@@ -115,7 +117,7 @@ class HomeScreen extends StatelessWidget {
                 "Bàn phím Piano",
                 Icons.piano,
                 Colors.red[700]!,
-                const PianoChallenge(),
+                const PianoKeyboard(),
               ),
               const SizedBox(height: 20),
               // Menu Grid
@@ -145,7 +147,9 @@ class HomeScreen extends StatelessWidget {
                   _buildMenuTile("Sheet nhạc", Icons.my_library_books, Colors.orange[600]!, () {
                     Navigator.push(context, MaterialPageRoute(builder: (context)=>  SheetMusic()));
                   }),
-                  _buildMenuTile("Học khóa nhạc", Icons.music_note, Colors.green[600]!, () {}),
+                  _buildMenuTile("Xem sheet nhạc", Icons.music_note, Colors.green[600]!, () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context)=> PlaySheet()));
+                  }),
                   _buildMenuTile("Thành tựu", Icons.emoji_events, Colors.yellow[700]!, () {}),
                 ],
               ),
