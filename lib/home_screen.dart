@@ -5,6 +5,7 @@ import 'piano_challenge.dart';
 import 'theory.dart';
 import 'sheet_music.dart';
 import 'package:learn_piano/piano_keyboard.dart';
+import 'eartrainning.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
   @override
@@ -119,6 +120,13 @@ class HomeScreen extends StatelessWidget {
                 Colors.red[700]!,
                 const PianoKeyboard(),
               ),
+              _buildFeaturedCard(
+                context,
+                "Luyện cảm âm",
+                Icons.piano,
+                Colors.red[700]!,
+                const EarTrainning(),
+              ),
               const SizedBox(height: 20),
               // Menu Grid
               const Text(
@@ -137,7 +145,7 @@ class HomeScreen extends StatelessWidget {
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
                 children: [
-                  _buildMenuTile("Luyện cảm âm", Icons.hearing, Colors.purple[600]!, () {
+                  _buildMenuTile("Nhận diện phím đàn", Icons.hearing, Colors.purple[600]!, () {
                     Navigator.push(context, MaterialPageRoute(builder: (context) => const PianoChallenge()));
                   }),
                   _buildMenuTile("Luyện nhịp", Icons.music_note, Colors.teal[600]!, () {}),
