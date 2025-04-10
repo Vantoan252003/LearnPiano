@@ -11,13 +11,22 @@ import 'auth_service.dart';
 import 'login_screen.dart';
 import 'change_password_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
   Widget build(BuildContext context) {
+    // Kiểm tra trạng thái đăng nhập và lấy thông tin người dùng
+    bool isLoggedIn = AuthService().getCurrentUser() != null;
+    String? userEmail = AuthService().getCurrentUser()?.email;
+
     return Scaffold(
-      backgroundColor: Colors.grey[900], // Nền tối hơn
+      backgroundColor: Colors.grey[900],
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 2,
@@ -55,32 +64,60 @@ class HomeScreen extends StatelessWidget {
                     end: Alignment.bottomRight,
                   ),
                 ),
-                child: const Text(
-                  "Menu",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      "Menu",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      isLoggedIn ? 'Xin chào, $userEmail' : 'Chưa đăng nhập',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                      ),
+                      overflow: TextOverflow.ellipsis, // Tránh tràn text nếu email quá dài
+                    ),
+                  ],
                 ),
               ),
               _buildDrawerItem(Icons.emoji_events, "Thành tựu", () {}),
               _buildDrawerItem(Icons.equalizer, "Phân tích", () {}),
               _buildDrawerItem(Icons.music_note, "Khóa nhạc", () {}),
               _buildDrawerItem(Icons.settings, "Cài đặt", () {}),
-              _buildDrawerItem(Icons.lock, "Thay đổi mật khẩu", () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ChangePasswordScreen()),
-                );
-              }),
-              _buildDrawerItem(Icons.logout, "Đăng xuất", () async {
-                await AuthService().logout();
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                );
-              }),
+              if (isLoggedIn)
+                _buildDrawerItem(Icons.lock, "Thay đổi mật khẩu", () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ChangePasswordScreen()),
+                  );
+                }),
+              _buildDrawerItem(
+                isLoggedIn ? Icons.logout : Icons.login,
+                isLoggedIn ? "Đăng xuất" : "Đăng nhập",
+                    () async {
+                  if (isLoggedIn) {
+                    await AuthService().logout();
+                    setState(() {});
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    );
+                  } else {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    );
+                  }
+                },
+              ),
             ],
           ),
         ),
@@ -91,7 +128,6 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Thanh tiến độ
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -130,7 +166,6 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              // Featured Section
               const Text(
                 "Khám phá ngay",
                 style: TextStyle(
@@ -169,7 +204,6 @@ class HomeScreen extends StatelessWidget {
                 const EarTrainning(),
               ),
               const SizedBox(height: 20),
-              // Menu Grid
               const Text(
                 "Công cụ học tập",
                 style: TextStyle(
@@ -190,7 +224,7 @@ class HomeScreen extends StatelessWidget {
                     "Nhận diện phím đàn",
                     Icons.hearing,
                     Colors.purple[600]!,
-                    () {
+                        () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -203,13 +237,13 @@ class HomeScreen extends StatelessWidget {
                     "Luyện nhịp",
                     Icons.music_note,
                     Colors.teal[600]!,
-                    () {},
+                        () {},
                   ),
                   _buildMenuTile(
                     "Lý thuyết",
                     Icons.book,
                     Colors.indigo[600]!,
-                    () {
+                        () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => TheoryPage()),
@@ -220,7 +254,7 @@ class HomeScreen extends StatelessWidget {
                     "Sheet nhạc",
                     Icons.my_library_books,
                     Colors.orange[600]!,
-                    () {
+                        () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => SheetMusic()),
@@ -231,7 +265,7 @@ class HomeScreen extends StatelessWidget {
                     "Xem sheet nhạc",
                     Icons.music_note,
                     Colors.green[600]!,
-                    () {
+                        () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => PlaySheet()),
@@ -242,7 +276,7 @@ class HomeScreen extends StatelessWidget {
                     "Thành tựu",
                     Icons.emoji_events,
                     Colors.yellow[700]!,
-                    () {},
+                        () {},
                   ),
                 ],
               ),
@@ -267,11 +301,11 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildStatCircle(
-    String title,
-    String value,
-    IconData icon,
-    Color accentColor,
-  ) {
+      String title,
+      String value,
+      IconData icon,
+      Color accentColor,
+      ) {
     return Column(
       children: [
         CircleAvatar(
@@ -294,12 +328,12 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildFeaturedCard(
-    BuildContext context,
-    String title,
-    IconData icon,
-    Color color,
-    Widget destination,
-  ) {
+      BuildContext context,
+      String title,
+      IconData icon,
+      Color color,
+      Widget destination,
+      ) {
     return Card(
       color: Colors.black,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -348,11 +382,11 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildMenuTile(
-    String title,
-    IconData icon,
-    Color color,
-    VoidCallback onTap,
-  ) {
+      String title,
+      IconData icon,
+      Color color,
+      VoidCallback onTap,
+      ) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
