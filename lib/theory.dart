@@ -28,7 +28,7 @@ class TheoryPage extends StatelessWidget {
                     SnackBar(content: Text('Sample data added to Firestore')),
                   );
                 },
-                child: Text('Add Sample Data to Firestore'),
+                child: Text('thêm dữ liệu vào firestore'),
               ),
             ),
             Padding(
