@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:learn_piano/chord_ear_training.dart';
 import 'package:learn_piano/play_sheet.dart';
 import 'package:learn_piano/theory.dart';
 import 'piano_challenge.dart';
@@ -6,8 +7,10 @@ import 'theory.dart';
 import 'sheet_music.dart';
 import 'package:learn_piano/piano_keyboard.dart';
 import 'eartrainning.dart';
+
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -89,9 +92,24 @@ class HomeScreen extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildStatCircle("Bài tập", "0", Icons.check_circle, Colors.blueAccent),
-                    _buildStatCircle("Điểm", "0", Icons.show_chart, Colors.greenAccent),
-                    _buildStatCircle("Giây", "0", Icons.timer, Colors.orangeAccent),
+                    _buildStatCircle(
+                      "Bài tập",
+                      "0",
+                      Icons.check_circle,
+                      Colors.blueAccent,
+                    ),
+                    _buildStatCircle(
+                      "Điểm",
+                      "0",
+                      Icons.show_chart,
+                      Colors.greenAccent,
+                    ),
+                    _buildStatCircle(
+                      "Giây",
+                      "0",
+                      Icons.timer,
+                      Colors.orangeAccent,
+                    ),
                   ],
                 ),
               ),
@@ -122,9 +140,16 @@ class HomeScreen extends StatelessWidget {
               ),
               _buildFeaturedCard(
                 context,
+                "Đoán hợp âm",
+                Icons.queue_music_sharp,
+                Colors.deepOrange,
+                ChordTraining(),
+              ),
+              _buildFeaturedCard(
+                context,
                 "Luyện cảm âm",
-                Icons.piano,
-                Colors.red[700]!,
+                Icons.hearing_rounded,
+                Colors.greenAccent[700]!,
                 const EarTrainning(),
               ),
               const SizedBox(height: 20),
@@ -145,20 +170,64 @@ class HomeScreen extends StatelessWidget {
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
                 children: [
-                  _buildMenuTile("Nhận diện phím đàn", Icons.hearing, Colors.purple[600]!, () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const PianoChallenge()));
-                  }),
-                  _buildMenuTile("Luyện nhịp", Icons.music_note, Colors.teal[600]!, () {}),
-                  _buildMenuTile("Lý thuyết", Icons.book, Colors.indigo[600]!, () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => TheoryPage()));
-                  }),
-                  _buildMenuTile("Sheet nhạc", Icons.my_library_books, Colors.orange[600]!, () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context)=>  SheetMusic()));
-                  }),
-                  _buildMenuTile("Xem sheet nhạc", Icons.music_note, Colors.green[600]!, () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context)=> PlaySheet()));
-                  }),
-                  _buildMenuTile("Thành tựu", Icons.emoji_events, Colors.yellow[700]!, () {}),
+                  _buildMenuTile(
+                    "Nhận diện phím đàn",
+                    Icons.hearing,
+                    Colors.purple[600]!,
+                    () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PianoChallenge(),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildMenuTile(
+                    "Luyện nhịp",
+                    Icons.music_note,
+                    Colors.teal[600]!,
+                    () {},
+                  ),
+                  _buildMenuTile(
+                    "Lý thuyết",
+                    Icons.book,
+                    Colors.indigo[600]!,
+                    () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => TheoryPage()),
+                      );
+                    },
+                  ),
+                  _buildMenuTile(
+                    "Sheet nhạc",
+                    Icons.my_library_books,
+                    Colors.orange[600]!,
+                    () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => SheetMusic()),
+                      );
+                    },
+                  ),
+                  _buildMenuTile(
+                    "Xem sheet nhạc",
+                    Icons.music_note,
+                    Colors.green[600]!,
+                    () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => PlaySheet()),
+                      );
+                    },
+                  ),
+                  _buildMenuTile(
+                    "Thành tựu",
+                    Icons.emoji_events,
+                    Colors.yellow[700]!,
+                    () {},
+                  ),
                 ],
               ),
             ],
@@ -171,14 +240,22 @@ class HomeScreen extends StatelessWidget {
   Widget _buildDrawerItem(IconData icon, String title, VoidCallback onTap) {
     return ListTile(
       leading: Icon(icon, color: Colors.white),
-      title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 18)),
+      title: Text(
+        title,
+        style: const TextStyle(color: Colors.white, fontSize: 18),
+      ),
       onTap: onTap,
       tileColor: Colors.transparent,
       hoverColor: Colors.grey[700],
     );
   }
 
-  Widget _buildStatCircle(String title, String value, IconData icon, Color accentColor) {
+  Widget _buildStatCircle(
+    String title,
+    String value,
+    IconData icon,
+    Color accentColor,
+  ) {
     return Column(
       children: [
         CircleAvatar(
@@ -195,15 +272,18 @@ class HomeScreen extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-        Text(
-          title,
-          style: TextStyle(color: Colors.grey[400], fontSize: 14),
-        ),
+        Text(title, style: TextStyle(color: Colors.grey[400], fontSize: 14)),
       ],
     );
   }
 
-  Widget _buildFeaturedCard(BuildContext context, String title, IconData icon, Color color, Widget destination) {
+  Widget _buildFeaturedCard(
+    BuildContext context,
+    String title,
+    IconData icon,
+    Color color,
+    Widget destination,
+  ) {
     return Card(
       color: Colors.black,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -229,13 +309,21 @@ class HomeScreen extends StatelessWidget {
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => destination));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => destination),
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: color,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
-              child: const Text("Bắt đầu", style: TextStyle(color: Colors.white)),
+              child: const Text(
+                "Bắt đầu",
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),
@@ -243,7 +331,12 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuTile(String title, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildMenuTile(
+    String title,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: Container(

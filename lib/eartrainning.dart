@@ -1,10 +1,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_midi_pro/flutter_midi_pro.dart';
-
 class EarTrainning extends StatefulWidget {
   const EarTrainning({super.key});
-
   @override
   State<EarTrainning> createState() => _EarTrainningState();
 }
@@ -62,7 +60,6 @@ class _EarTrainningState extends State<EarTrainning> {
     if (selectedSfId.value == null) return;
     setState(() {
       isPlaying = true;
-      totalAttempts++;
       randomNote = 48 + Random().nextInt(24);
       _generateOptions();
       playNote(key: randomNote!, sfId: selectedSfId.value!);
@@ -89,20 +86,22 @@ class _EarTrainningState extends State<EarTrainning> {
     if (selectedOption == correctAnswer) {
       setState(() {
         score++;
+        totalAttempts++;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
             "Đúng rồi!",
-            style: TextStyle(fontSize: 20, color: Colors.amber),
+            style: TextStyle(fontSize: 16, color: Colors.green),
           ),
           duration: Duration(seconds: 1),
         ),
       );
     } else {
+      totalAttempts++;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Sai rồi! Đáp án đúng là $correctAnswer"),
+          content: Text("Sai rồi! Đáp án đúng là $correctAnswer", style: TextStyle(color: Colors.red, fontSize: 15),),
           duration: Duration(seconds: 1),
         ),
       );
@@ -124,23 +123,18 @@ class _EarTrainningState extends State<EarTrainning> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[900],
       appBar: AppBar(
         backgroundColor: Colors.black,
         title: const Text('Luyện Cảm Âm', style: TextStyle(color: Colors.white)),
       ),
-      body: ValueListenableBuilder(
+      body:
+      ValueListenableBuilder(
+
         valueListenable: selectedSfId,
         builder: (context, selectedSfIdValue, child) {
           if (selectedSfIdValue == null) {
             return const Center(child: CircularProgressIndicator());
-          }
-          if (!isPlaying) {
-            return Center(
-              child: ElevatedButton(
-                onPressed: _startGame,
-                child: const Text("Bắt đầu"),
-              ),
-            );
           }
           return SingleChildScrollView(
             child: Padding(
@@ -149,8 +143,8 @@ class _EarTrainningState extends State<EarTrainning> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '$score of $totalAttempts correct',
-                    style: const TextStyle(color: Colors.black, fontSize: 16),
+                    '$score trên $totalAttempts đúng ',
+                    style: const TextStyle(color: Colors.white, fontSize: 20),
                   ),
                   const SizedBox(height: 10),
                   ElevatedButton(
@@ -160,13 +154,13 @@ class _EarTrainningState extends State<EarTrainning> {
                         stopNote(key: randomNote!, sfId: selectedSfIdValue);
                       });
                     },
-                    child: const Text("Nghe lại"),
+                    child: Text("Nghe lại", style: TextStyle(fontSize: 20, color: Colors.black),),
                     ),
                   const SizedBox(height: 20),
                   const Text(
                     "Chọn nốt nhạc",
                     style: TextStyle(
-                      color: Colors.black,
+                      color: Colors.white,
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
