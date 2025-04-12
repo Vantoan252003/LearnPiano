@@ -41,7 +41,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       case 'invalid-email':
         return 'Email không hợp lệ. Vui lòng kiểm tra lại.';
       case 'user-not-found':
-        return 'Không tìm thấy tài khoản với email này.';
+        return 'Không tìm thấy tài khoản với email.';
       default:
         return 'Đã có lỗi xảy ra: ${e.message}';
     }
