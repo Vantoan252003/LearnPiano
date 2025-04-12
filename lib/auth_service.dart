@@ -12,9 +12,9 @@ class AuthService {
       );
       return userCredential.user;
     } on FirebaseAuthException catch (e) {
-      throw e; // Ném lỗi lên để xử lý ở tầng trên
+      throw e; // Ném lỗi lên để xử lý ở tầng trênnn
     } catch (e) {
-      throw Exception('Đăng ký thất bại: $e');
+      throw Exception('Đăng ký thất bạiiii: $e');
     }
   }
 
