@@ -10,8 +10,6 @@ import 'eartrainning.dart';
 import 'auth_service.dart';
 import 'login_screen.dart';
 import 'change_password_screen.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Thêm Firestore
-import 'edit_profile_screen.dart'; // Thêm màn hình chỉnh sửa hồ sơ
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,10 +23,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     // Kiểm tra trạng thái đăng nhập và lấy thông tin người dùng
     bool isLoggedIn = AuthService().getCurrentUser() != null;
-    String? userId = AuthService().getCurrentUser()?.uid;
+    String? userEmail = AuthService().getCurrentUser()?.email;
 
     return Scaffold(
-      backgroundColor: Colors.grey[900], // Nền tối hơn
+      backgroundColor: Colors.grey[900],
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 2,
@@ -66,92 +64,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     end: Alignment.bottomRight,
                   ),
                 ),
-                child: isLoggedIn && userId != null
-                    ? FutureBuilder<DocumentSnapshot>(
-                  future: FirebaseFirestore.instance.collection('users').doc(userId).get(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (snapshot.hasError) {
-                      return const Text(
-                        'Lỗi khi tải thông tin',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      );
-                    }
-                    if (!snapshot.hasData || !snapshot.data!.exists) {
-                      return const Text(
-                        'Không tìm thấy thông tin người dùng',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      );
-                    }
-
-                    var userData = snapshot.data!.data() as Map<String, dynamic>;
-                    String name = userData['name'] ?? 'Người dùng';
-                    String avatar = userData['avatar'] ?? 'https://example.com/default-avatar.png';
-
-                    // Biến để theo dõi lỗi tải ảnh
-                    bool hasImageError = false;
-
-                    return Row(
-                      children: [
-                        StatefulBuilder(
-                          builder: (context, setState) {
-                            return CircleAvatar(
-                              radius: 30,
-                              backgroundImage: NetworkImage(avatar),
-                              backgroundColor: Colors.grey[700],
-                              onBackgroundImageError: (error, stackTrace) {
-                                // Cập nhật trạng thái khi có lỗi tải ảnh
-                                setState(() {
-                                  hasImageError = true;
-                                });
-                              },
-                              child: hasImageError || avatar.isEmpty
-                                  ? const Icon(
-                                Icons.person,
-                                color: Colors.white,
-                                size: 30,
-                              )
-                                  : null,
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                name,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                AuthService().getCurrentUser()?.email ?? 'Chưa đăng nhập',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 14,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                )
-                    : const Column(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
+                    const Text(
                       "Menu",
                       style: TextStyle(
                         color: Colors.white,
@@ -159,13 +76,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      'Chưa đăng nhập',
-                      style: TextStyle(
+                      isLoggedIn ? 'Xin chào, $userEmail' : 'Chưa đăng nhập',
+                      style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 16,
                       ),
+                      overflow: TextOverflow.ellipsis, // Tránh tràn text nếu email quá dài
                     ),
                   ],
                 ),
@@ -174,13 +92,6 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildDrawerItem(Icons.equalizer, "Phân tích", () {}),
               _buildDrawerItem(Icons.music_note, "Khóa nhạc", () {}),
               _buildDrawerItem(Icons.settings, "Cài đặt", () {}),
-              if (isLoggedIn)
-                _buildDrawerItem(Icons.person, "Chỉnh sửa hồ sơ", () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const EditProfileScreen()),
-                  );
-                }),
               if (isLoggedIn)
                 _buildDrawerItem(Icons.lock, "Thay đổi mật khẩu", () {
                   Navigator.push(
@@ -194,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     () async {
                   if (isLoggedIn) {
                     await AuthService().logout();
-                    setState(() {}); // Cập nhật giao diện sau khi đăng xuất
+                    setState(() {});
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -217,7 +128,6 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Thanh tiến độ
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -256,7 +166,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              // Featured Section
               const Text(
                 "Khám phá ngay",
                 style: TextStyle(
@@ -295,7 +204,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 const EarTrainning(),
               ),
               const SizedBox(height: 20),
-              // Menu Grid
               const Text(
                 "Công cụ học tập",
                 style: TextStyle(
