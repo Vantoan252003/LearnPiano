@@ -15,9 +15,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _nameController = TextEditingController();
   bool _isLoading = false;
-  bool _obscureText = true; // Biến để quản lý trạng thái hiện/ẩn mật khẩu
-  bool _obscureConfirmText = true; // Biến để quản lý trạng thái hiện/ẩn xác nhận mật khẩu
+  bool _obscureText = true;
+  bool _obscureConfirmText = true;
 
   // Hàm kiểm tra định dạng mật khẩu
   String? _validatePassword(String password) {
@@ -41,6 +42,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void _register() async {
     String password = _passwordController.text.trim();
     String confirmPassword = _confirmPasswordController.text.trim();
+    String name = _nameController.text.trim();
+
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập tên')),
+      );
+      return;
+    }
 
     if (password != confirmPassword) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -62,6 +71,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       User? user = await _auth.register(
         _emailController.text.trim(),
         password,
+        name,
       );
       setState(() => _isLoading = false);
 
@@ -116,6 +126,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 40),
               TextField(
+                controller: _nameController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: 'Tên',
+                  labelStyle: const TextStyle(color: Colors.grey),
+                  filled: true,
+                  fillColor: Colors.grey[800],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              TextField(
                 controller: _emailController,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
@@ -168,7 +192,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   suffixIcon: IconButton(
-                    icon: Icon(
+                    icon: Icon
+
+                      (
                       _obscureConfirmText ? Icons.visibility : Icons.visibility_off,
                       color: Colors.grey,
                     ),

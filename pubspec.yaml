@@ -42,6 +42,7 @@ dependencies:
   connectivity_plus: ^6.0.5
   firebase_storage: ^12.3.2
   cloud_firestore: ^5.4.1
+  image_picker: ^1.1.2
   xml: ^6.5.0          # Phân tích file XML (MusicXML)
   path_provider: ^2.1.5
   file_picker: ^9.2.0

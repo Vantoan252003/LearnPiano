@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:learn_piano/play_sheet.dart';
+import 'package:learn_piano/profile_screen.dart';
 import 'package:learn_piano/theory.dart';
 import 'piano_challenge.dart';
 import 'theory.dart';
@@ -56,6 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: ListView(
             padding: EdgeInsets.zero,
             children: [
+              // Trong _HomeScreenState
               DrawerHeader(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -68,22 +70,25 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      "Menu",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    CircleAvatar(
+                      radius: 30,
+                      backgroundImage: AuthService().getCurrentUser()?.photoURL != null
+                          ? NetworkImage(AuthService().getCurrentUser()!.photoURL!)
+                          : null,
+                      child: AuthService().getCurrentUser()?.photoURL == null
+                          ? const Icon(Icons.person, size: 30, color: Colors.white)
+                          : null,
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      isLoggedIn ? 'Xin chào, $userEmail' : 'Chưa đăng nhập',
+                      isLoggedIn
+                          ? 'Xin chào, ${AuthService().getCurrentUser()?.displayName ?? userEmail}'
+                          : 'Chưa đăng nhập',
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 16,
                       ),
-                      overflow: TextOverflow.ellipsis, // Tránh tràn text nếu email quá dài
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -93,6 +98,12 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildDrawerItem(Icons.music_note, "Khóa nhạc", () {}),
               _buildDrawerItem(Icons.settings, "Cài đặt", () {}),
               if (isLoggedIn)
+                _buildDrawerItem(Icons.person, "Hồ sơ", () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                  );
+                }),
                 _buildDrawerItem(Icons.lock, "Thay đổi mật khẩu", () {
                   Navigator.push(
                     context,
