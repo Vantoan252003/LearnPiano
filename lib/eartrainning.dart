@@ -1,6 +1,9 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_midi_pro/flutter_midi_pro.dart';
+import 'package:learn_piano/auth_service.dart';
+import 'package:learn_piano/login_screen.dart';
+
 class EarTrainning extends StatefulWidget {
   const EarTrainning({super.key});
   @override
@@ -9,14 +12,16 @@ class EarTrainning extends StatefulWidget {
 
 class _EarTrainningState extends State<EarTrainning> {
   final MidiPro midiPro = MidiPro();
+  final AuthService _auth = AuthService();
   final ValueNotifier<Map<int, String>> loadedSoundfonts = ValueNotifier<Map<int, String>>({});
   final ValueNotifier<int?> selectedSfId = ValueNotifier<int?>(null);
 
-  int? randomNote; // Nốt ngẫu nhiên được phát
-  int score = 0; // Điểm số
-  int totalAttempts = 0; // Tổng số lần thử
-  bool isPlaying = false; // Trạng thái trò chơi
-  List<String> options = []; // Các lựa chọn trả lời
+  int? randomNote;
+  int score = 0;
+  int highScore = 0;
+  int totalAttempts = 0;
+  bool isPlaying = false;
+  List<String> options = [];
   Map<String, String> noteAlternatives = {
     'A#': 'Bb',
     'C#': 'Db',
@@ -28,7 +33,33 @@ class _EarTrainningState extends State<EarTrainning> {
   @override
   void initState() {
     super.initState();
-    _loadDefaultSoundfont();
+    _checkLoginAndLoad();
+  }
+
+  Future<void> _checkLoginAndLoad() async {
+    if (_auth.getCurrentUser() == null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+      return;
+    }
+    print('User logged in: ${_auth.getCurrentUser()?.uid}');
+    await _loadDefaultSoundfont();
+    await _loadHighScore();
+  }
+
+  Future<void> _loadHighScore() async {
+    try {
+      int score = await _auth.getHighScore('ear_training');
+      setState(() {
+        highScore = score;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi tải điểm số: $e')),
+      );
+    }
   }
 
   Future<void> _loadDefaultSoundfont() async {
@@ -82,11 +113,21 @@ class _EarTrainningState extends State<EarTrainning> {
   }
 
   void _checkAnswer(String selectedOption) {
+    if (_auth.getCurrentUser() == null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+      return;
+    }
     String correctAnswer = _midiToNoteName(randomNote!);
     if (selectedOption == correctAnswer) {
       setState(() {
         score++;
         totalAttempts++;
+        if (score > highScore) {
+          highScore = score;
+        }
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -98,20 +139,43 @@ class _EarTrainningState extends State<EarTrainning> {
         ),
       );
     } else {
-      totalAttempts++;
+      setState(() {
+        totalAttempts++;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Sai rồi! Đáp án đúng là $correctAnswer", style: TextStyle(color: Colors.red, fontSize: 15),),
+          content: Text(
+            "Sai rồi! Đáp án đúng là $correctAnswer",
+            style: TextStyle(color: Colors.red, fontSize: 15),
+          ),
           duration: Duration(seconds: 1),
         ),
       );
     }
-    Future.delayed(const Duration(seconds: 0), () {
-      _startGame();
-    });
+    _startGame();
   }
 
-  void _endQuiz() {
+  void _endQuiz() async {
+    if (_auth.getCurrentUser() == null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+      return;
+    }
+    try {
+      print('Ending quiz, current high score: $highScore');
+      await _auth.updateHighScore('ear_training', highScore);
+      int newHighScore = await _auth.getHighScore('ear_training');
+      print('New high score from Firestore: $newHighScore');
+      setState(() {
+        highScore = newHighScore;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi lưu điểm: $e')),
+      );
+    }
     setState(() {
       isPlaying = false;
       score = 0;
@@ -128,9 +192,7 @@ class _EarTrainningState extends State<EarTrainning> {
         backgroundColor: Colors.black,
         title: const Text('Luyện Cảm Âm', style: TextStyle(color: Colors.white)),
       ),
-      body:
-      ValueListenableBuilder(
-
+      body: ValueListenableBuilder(
         valueListenable: selectedSfId,
         builder: (context, selectedSfIdValue, child) {
           if (selectedSfIdValue == null) {
@@ -143,7 +205,11 @@ class _EarTrainningState extends State<EarTrainning> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '$score trên $totalAttempts đúng ',
+                    'Điểm: $score / $totalAttempts đúng',
+                    style: const TextStyle(color: Colors.white, fontSize: 20),
+                  ),
+                  Text(
+                    'Điểm cao nhất: $highScore',
                     style: const TextStyle(color: Colors.white, fontSize: 20),
                   ),
                   const SizedBox(height: 10),
@@ -154,8 +220,11 @@ class _EarTrainningState extends State<EarTrainning> {
                         stopNote(key: randomNote!, sfId: selectedSfIdValue);
                       });
                     },
-                    child: Text("Nghe lại", style: TextStyle(fontSize: 20, color: Colors.black),),
+                    child: Text(
+                      "Nghe lại",
+                      style: TextStyle(fontSize: 20, color: Colors.black),
                     ),
+                  ),
                   const SizedBox(height: 20),
                   const Text(
                     "Chọn nốt nhạc",

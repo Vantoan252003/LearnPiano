@@ -1,12 +1,15 @@
 import 'dart:math';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:learn_piano/auth_service.dart';
+import 'package:learn_piano/login_screen.dart';
 
 class PianoChallenge extends StatefulWidget {
   const PianoChallenge({super.key});
   @override
   State<PianoChallenge> createState() => _PianoChallengeState();
 }
+
 class _PianoChallengeState extends State<PianoChallenge> {
   final List<String> whiteNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
   final List<Color> colors = [
@@ -20,8 +23,10 @@ class _PianoChallengeState extends State<PianoChallenge> {
   ];
   final List<String> blackNotes = ['C#', 'D#', 'F#', 'G#', 'A#'];
   final AudioPlayer audioPlayer = AudioPlayer();
+  final AuthService _auth = AuthService();
   String? currentTargetNote;
   int score = 0;
+  int highScore = 0;
   bool isGameActive = true;
 
   void playSound(String note) async {
@@ -42,28 +47,68 @@ class _PianoChallengeState extends State<PianoChallenge> {
     });
   }
 
-  void handleTap(String note) {
+  void handleTap(String note) async {
+    if (_auth.getCurrentUser() == null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+      return;
+    }
     if (!isGameActive) return;
     if (note == currentTargetNote) {
       setState(() {
         score++;
         playSound(note);
         generateNewTarget();
+        if (score > highScore) {
+          highScore = score;
+        }
       });
     } else {
       setState(() {
         isGameActive = false;
       });
+      try {
+        print('Game over, current high score: $highScore');
+        await _auth.updateHighScore('piano_challenge', highScore);
+        int newHighScore = await _auth.getHighScore('piano_challenge');
+        print('New high score from Firestore: $newHighScore');
+        setState(() {
+          highScore = newHighScore;
+        });
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi lưu điểm: $e')),
+        );
+      }
       showGameOverDialog();
     }
   }
 
-  void resetGame() {
+  void resetGame() async {
+    if (_auth.getCurrentUser() == null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+      return;
+    }
     setState(() {
       score = 0;
       isGameActive = true;
       generateNewTarget();
     });
+    try {
+      int score = await _auth.getHighScore('piano_challenge');
+      setState(() {
+        highScore = score;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi tải điểm số: $e')),
+      );
+    }
   }
 
   void showGameOverDialog() {
@@ -72,7 +117,7 @@ class _PianoChallengeState extends State<PianoChallenge> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text("Trò chơi kết thúc"),
-          content: Text("Điểm của bạn là: $score"),
+          content: Text("Điểm của bạn: $score\nĐiểm cao nhất: $highScore"),
           actions: [
             TextButton(
               onPressed: () {
@@ -91,6 +136,28 @@ class _PianoChallengeState extends State<PianoChallenge> {
   void initState() {
     super.initState();
     generateNewTarget();
+    _checkLoginAndLoad();
+  }
+
+  Future<void> _checkLoginAndLoad() async {
+    if (_auth.getCurrentUser() == null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+      return;
+    }
+    print('User logged in: ${_auth.getCurrentUser()?.uid}');
+    try {
+      int score = await _auth.getHighScore('piano_challenge');
+      setState(() {
+        highScore = score;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi tải điểm số: $e')),
+      );
+    }
   }
 
   @override
@@ -127,7 +194,11 @@ class _PianoChallengeState extends State<PianoChallenge> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.music_note, size: 30, color: Colors.white,),
+                        const Icon(
+                          Icons.music_note,
+                          size: 30,
+                          color: Colors.white,
+                        ),
                         RichText(
                           text: TextSpan(
                             style: const TextStyle(
@@ -150,7 +221,17 @@ class _PianoChallengeState extends State<PianoChallenge> {
                     ),
                     Text(
                       "Điểm: $score",
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold,color: Colors.white),
+                      style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white),
+                    ),
+                    Text(
+                      "Điểm cao nhất: $highScore",
+                      style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white),
                     ),
                   ],
                 ),
@@ -202,7 +283,15 @@ class _PianoChallengeState extends State<PianoChallenge> {
                   child: Row(
                     children: List.generate(whiteNotes.length, (index) {
                       if (index == 0 || index == 1 || index == 3 || index == 4 || index == 5) {
-                        final blackNoteIndex = index == 0 ? 0 : index == 1 ? 1 : index == 3 ? 2 : index == 4 ? 3 : 4;
+                        final blackNoteIndex = index == 0
+                            ? 0
+                            : index == 1
+                            ? 1
+                            : index == 3
+                            ? 2
+                            : index == 4
+                            ? 3
+                            : 4;
                         return Expanded(
                           child: Align(
                             alignment: Alignment.topCenter,
