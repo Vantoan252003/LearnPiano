@@ -50,7 +50,7 @@ class _UploadSheetMusic extends State<SheetMusic> {
     });
 
     try {
-      final storageRef = FirebaseStorage.instance.ref().child('uploads/$_fileName');
+      final storageRef = FirebaseStorage.instance.ref().child('mxl/$_fileName');
       final uploadTask = storageRef.putFile(_file!);
 
       uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {

@@ -70,9 +70,17 @@ class _MusicViewerState extends State<MusicViewer> {
       final archive = ZipDecoder().decodeBytes(bytes);
       final xmlFile = archive.firstWhere(
             (file) => file.name.endsWith('.xml') && !file.name.contains('META-INF'),
+        orElse: () => throw Exception('No MusicXML file found in .mxl archive'),
       );
       _fileContent = utf8.decode(xmlFile.content as List<int>);
-      await _parseMusicXml(_fileContent!);
+      try {
+        await _parseMusicXml(_fileContent!);
+      } catch (e) {
+        print('Error parsing MusicXML: $e');
+        setState(() {
+          _fileContent = null;
+        });
+      }
     }
     setState(() => _isLoading = false);
   }
@@ -84,40 +92,59 @@ class _MusicViewerState extends State<MusicViewer> {
 
     _midiEvents.clear();
     double currentTime = 0.0;
-    double baseTempo = 120.0; // Default tempo
+    double baseTempo = 120.0; // Giá trị mặc định, sẽ được cập nhật nếu tìm thấy
     int divisions = 1;
     Map<String, int> keySignature = {};
+    Map<String, int> measureAccidentals = {};
+    List<Map<String, dynamic>> tempMidiEvents = []; // Lưu tạm MIDI events trước khi xử lý repeat
+    List<int> repeatStartMeasures = []; // Lưu số thứ tự measure bắt đầu repeat
+    List<int> repeatEndMeasures = []; // Lưu số thứ tự measure kết thúc repeat
+    int measureCount = 0;
 
-    // Check for global tempo in the first part's first measure
-    final firstPart = scorePartwise.findAllElements('part').firstOrNull;
-    final firstMeasure = firstPart?.findAllElements('measure').firstOrNull;
-    if (firstMeasure != null) {
-      final direction = firstMeasure.getElement('direction');
-      if (direction != null) {
-        // Check <sound> element for tempo
-        final soundTempo = direction.getElement('sound')?.getAttribute('tempo');
-        if (soundTempo != null) {
-          baseTempo = double.parse(soundTempo);
-        }
-
-        // Check <metronome> element for tempo
-        final metronome = direction.getElement('direction-type')?.getElement('metronome');
-        if (metronome != null) {
-          final beatUnit = metronome.getElement('beat-unit')?.innerText;
-          final perMinute = metronome.getElement('per-minute')?.innerText;
-          if (beatUnit != null && perMinute != null) {
-            // Assuming beat-unit is a quarter note (most common)
-            if (beatUnit == 'quarter') {
+    // Tìm tempo trong toàn bộ file
+    for (var part in scorePartwise.findAllElements('part')) {
+      for (var measure in part.findAllElements('measure')) {
+        final direction = measure.getElement('direction');
+        if (direction != null) {
+          final soundTempo = direction.getElement('sound')?.getAttribute('tempo');
+          if (soundTempo != null) {
+            baseTempo = double.parse(soundTempo);
+            break;
+          }
+          final metronome = direction.getElement('direction-type')?.getElement('metronome');
+          if (metronome != null) {
+            final beatUnit = metronome.getElement('beat-unit')?.innerText;
+            final perMinute = metronome.getElement('per-minute')?.innerText;
+            if (beatUnit != null && perMinute != null && beatUnit == 'quarter') {
               baseTempo = double.parse(perMinute);
+              break;
             }
           }
         }
       }
+      if (baseTempo != 120.0) break; // Thoát vòng lặp part nếu đã tìm thấy tempo
     }
 
+    // Xử lý các measure
     for (var part in scorePartwise.findAllElements('part')) {
+      measureCount = 0;
       for (var measure in part.findAllElements('measure')) {
-        // Update attributes (divisions and key signature)
+        measureCount++;
+        measureAccidentals.clear();
+
+        // Xử lý barline để tìm repeat
+        for (var barline in measure.findAllElements('barline')) {
+          final repeat = barline.getElement('repeat');
+          if (repeat != null) {
+            final direction = repeat.getAttribute('direction');
+            if (direction == 'forward') {
+              repeatStartMeasures.add(measureCount);
+            } else if (direction == 'backward') {
+              repeatEndMeasures.add(measureCount);
+            }
+          }
+        }
+
         final attributes = measure.getElement('attributes');
         if (attributes != null) {
           final divisionsElement = attributes.getElement('divisions');
@@ -133,16 +160,12 @@ class _MusicViewerState extends State<MusicViewer> {
           }
         }
 
-        // Update tempo if present in this measure
         final direction = measure.getElement('direction');
         if (direction != null) {
-          // Check <sound> element
           final soundTempo = direction.getElement('sound')?.getAttribute('tempo');
           if (soundTempo != null) {
             baseTempo = double.parse(soundTempo);
           }
-
-          // Check <metronome> element
           final metronome = direction.getElement('direction-type')?.getElement('metronome');
           if (metronome != null) {
             final beatUnit = metronome.getElement('beat-unit')?.innerText;
@@ -153,7 +176,6 @@ class _MusicViewerState extends State<MusicViewer> {
           }
         }
 
-        // Process notes
         List<int> chordNotes = [];
         double chordStartTime = currentTime;
         double chordDuration = 0.0;
@@ -163,36 +185,69 @@ class _MusicViewerState extends State<MusicViewer> {
             final pitch = element.getElement('pitch');
             final duration = double.parse(element.getElement('duration')?.innerText ?? '1');
             final durationInSeconds = (duration / divisions) * (60 / baseTempo);
+            bool isFermata = false;
+            bool isStaccato = false;
+            bool isSlurStart = false;
+            bool isSlurEnd = false;
+
+            // Kiểm tra notations
+            final notations = element.getElement('notations');
+            if (notations != null) {
+              if (notations.getElement('fermata') != null) {
+                isFermata = true;
+              }
+              final articulations = notations.getElement('articulations');
+              if (articulations?.getElement('staccato') != null) {
+                isStaccato = true;
+              }
+              for (var slur in notations.findAllElements('slur')) {
+                final type = slur.getAttribute('type');
+                if (type == 'start') isSlurStart = true;
+                else if (type == 'stop') isSlurEnd = true;
+              }
+            }
 
             if (pitch != null) {
               final step = pitch.getElement('step')?.innerText;
               final octave = int.parse(pitch.getElement('octave')?.innerText ?? '4');
               final accidental = element.getElement('accidental')?.innerText;
               final isChord = element.getElement('chord') != null;
-              final midiNote = _stepToMidiNote(step, octave, keySignature, accidental);
+              final noteKey = '$step$octave';
+              final midiNote = _stepToMidiNote(step, octave, keySignature, accidental, measureAccidentals, noteKey);
 
               if (midiNote != null) {
+                double adjustedDuration = durationInSeconds;
+                if (isFermata) {
+                  adjustedDuration *= 1.5; // Kéo dài 1.5 lần cho fermata
+                }
+                if (isStaccato) {
+                  adjustedDuration *= 0.5; // Rút ngắn 0.5 lần cho staccato
+                }
+
                 if (isChord) {
                   chordNotes.add(midiNote);
-                  chordDuration = durationInSeconds;
+                  chordDuration = adjustedDuration;
                 } else {
                   if (chordNotes.isNotEmpty) {
-                    _midiEvents.add({
+                    tempMidiEvents.add({
                       'midiNotes': List<int>.from(chordNotes),
                       'startTime': chordStartTime,
                       'duration': chordDuration,
-                      'baseTempo': baseTempo, // Store the tempo with the event
+                      'baseTempo': baseTempo,
+                      'isSlurStart': isSlurStart,
+                      'isSlurEnd': isSlurEnd,
+                      'measure': measureCount,
                     });
                     chordNotes.clear();
                   }
                   chordNotes.add(midiNote);
                   chordStartTime = currentTime;
-                  chordDuration = durationInSeconds;
+                  chordDuration = adjustedDuration;
                 }
                 if (!isChord) currentTime += durationInSeconds;
               }
             } else {
-              currentTime += durationInSeconds; // Handle rests
+              currentTime += durationInSeconds;
             }
           } else if (element.name.local == 'forward') {
             final duration = double.parse(element.getElement('duration')?.innerText ?? '0');
@@ -204,17 +259,68 @@ class _MusicViewerState extends State<MusicViewer> {
         }
 
         if (chordNotes.isNotEmpty) {
-          _midiEvents.add({
+          tempMidiEvents.add({
             'midiNotes': List<int>.from(chordNotes),
             'startTime': chordStartTime,
             'duration': chordDuration,
             'baseTempo': baseTempo,
+            'isSlurStart': false,
+            'isSlurEnd': false,
+            'measure': measureCount,
           });
         }
       }
     }
 
+    // Xử lý repeat để tạo _midiEvents
+    _midiEvents = _processRepeats(tempMidiEvents, repeatStartMeasures, repeatEndMeasures);
+
     _midiEvents.sort((a, b) => a['startTime'].compareTo(b['startTime']));
+  }
+
+  List<Map<String, dynamic>> _processRepeats(
+      List<Map<String, dynamic>> events,
+      List<int> startMeasures,
+      List<int> endMeasures) {
+    List<Map<String, dynamic>> finalEvents = [];
+    int currentMeasure = 1;
+    int repeatIndex = 0;
+    bool inRepeat = false;
+    double timeOffset = 0.0;
+
+    for (var event in events) {
+      final measure = event['measure'] as int;
+
+      // Kiểm tra nếu bắt đầu repeat
+      if (startMeasures.contains(measure) && !inRepeat) {
+        inRepeat = true;
+        repeatIndex++;
+      }
+
+      // Thêm event vào danh sách
+      final newEvent = Map<String, dynamic>.from(event);
+      newEvent['startTime'] = event['startTime'] + timeOffset;
+      finalEvents.add(newEvent);
+
+      // Kiểm tra nếu kết thúc repeat
+      if (endMeasures.contains(measure) && inRepeat) {
+        inRepeat = false;
+        // Quay lại measure bắt đầu repeat
+        final startMeasure = startMeasures[repeatIndex - 1];
+        final repeatEvents = events.where((e) => e['measure'] >= startMeasure && e['measure'] <= measure).toList();
+        // Tính thời gian của đoạn repeat
+        final repeatDuration = repeatEvents.last['startTime'] + repeatEvents.last['duration'] - repeatEvents.first['startTime'];
+        timeOffset += repeatDuration;
+        // Thêm lại các event của đoạn repeat
+        for (var repeatEvent in repeatEvents) {
+          final newRepeatEvent = Map<String, dynamic>.from(repeatEvent);
+          newRepeatEvent['startTime'] = repeatEvent['startTime'] + timeOffset;
+          finalEvents.add(newRepeatEvent);
+        }
+      }
+    }
+
+    return finalEvents;
   }
 
   Map<String, int> _getKeySignatureAlterations(int fifths) {
@@ -233,23 +339,41 @@ class _MusicViewerState extends State<MusicViewer> {
     return alterations;
   }
 
-  int? _stepToMidiNote(String? step, int octave, Map<String, int> keySignature, String? accidental) {
+  int? _stepToMidiNote(String? step, int octave, Map<String, int> keySignature, String? accidental, Map<String, int> measureAccidentals, String noteKey) {
     if (step == null) return null;
     const noteMap = {'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11};
     final base = noteMap[step.toUpperCase()];
     if (base == null) return null;
 
     int alteration = keySignature[step.toUpperCase()] ?? 0;
-    if (accidental != null) {
-      alteration = {'sharp': 1, 'flat': -1, 'natural': 0}[accidental] ?? 0;
+
+    if (measureAccidentals.containsKey(noteKey)) {
+      alteration = measureAccidentals[noteKey]!;
     }
+
+    if (accidental != null) {
+      alteration = {
+        'sharp': 1,
+        'flat': -1,
+        'natural': 0,
+        'double-sharp': 2,
+        'double-flat': -2,
+        'sharp-sharp': 2,
+        'flat-flat': -2,
+      }[accidental] ?? 0;
+      measureAccidentals[noteKey] = alteration;
+    }
+
     return base + alteration + (octave + 1) * 12;
   }
 
   Future<void> _playMusic() async {
-    if (_isPlaying) {
-      setState(() => _isPlaying = false); // Stop current playback
-      await Future.delayed(const Duration(milliseconds: 100)); // Allow notes to stop
+    _isPlaying = false;
+    await Future.delayed(const Duration(milliseconds: 100));
+    for (var event in _midiEvents) {
+      for (var midi in event['midiNotes'] as List<int>) {
+        await _midiPro!.stopNote(channel: 0, key: midi, sfId: _sfId!);
+      }
     }
 
     setState(() => _isPlaying = true);
@@ -260,11 +384,15 @@ class _MusicViewerState extends State<MusicViewer> {
         'time': e['startTime'] / _tempoMultiplier,
         'duration': e['duration'] / _tempoMultiplier,
         'action': 'start',
+        'isSlurStart': e['isSlurStart'] ?? false,
+        'isSlurEnd': e['isSlurEnd'] ?? false,
       }),
       ..._midiEvents.map((e) => {
         'midiNotes': e['midiNotes'],
         'time': (e['startTime'] + e['duration']) / _tempoMultiplier,
         'action': 'stop',
+        'isSlurStart': e['isSlurStart'] ?? false,
+        'isSlurEnd': e['isSlurEnd'] ?? false,
       }),
     ]..sort((a, b) => a['time'].compareTo(b['time']));
 
@@ -274,14 +402,21 @@ class _MusicViewerState extends State<MusicViewer> {
     while (eventIndex < events.length && _isPlaying && mounted) {
       final elapsedSeconds = DateTime.now().difference(startTime).inMilliseconds / 1000.0;
 
-      while (eventIndex < events.length && events[eventIndex]['time'] <= elapsedSeconds) {
+      while (eventIndex < events.length && events[eventIndex]['time'] <= elapsedSeconds && _isPlaying) {
         final event = events[eventIndex];
         final midiNotes = event['midiNotes'] as List<int>;
         final action = event['action'] as String;
+        final isSlurStart = event['isSlurStart'] as bool;
+        final isSlurEnd = event['isSlurEnd'] as bool;
+        int velocity = 127;
+
+        if (isSlurStart || isSlurEnd) {
+          velocity = 100; // Giảm velocity để nốt mượt hơn
+        }
 
         for (var midi in midiNotes) {
           if (action == 'start') {
-            await _midiPro!.playNote(channel: 0, key: midi, velocity: 127, sfId: _sfId!);
+            await _midiPro!.playNote(channel: 0, key: midi, velocity: velocity, sfId: _sfId!);
           } else {
             await _midiPro!.stopNote(channel: 0, key: midi, sfId: _sfId!);
           }
@@ -289,10 +424,19 @@ class _MusicViewerState extends State<MusicViewer> {
         eventIndex++;
       }
 
+      if (!_isPlaying) break;
       await Future.delayed(const Duration(milliseconds: 10));
     }
 
-    setState(() => _isPlaying = false);
+    if (mounted) {
+      setState(() => _isPlaying = false);
+    }
+  }
+
+  Future<void> _rewindMusic() async {
+    if (_isPlaying) {
+      await _playMusic();
+    }
   }
 
   @override
@@ -315,15 +459,23 @@ class _MusicViewerState extends State<MusicViewer> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _fileContent == null
-          ? const Center(child: Text('Error loading file'))
+          ? const Center(child: Text('Error: Unable to parse this MusicXML file. It may contain unsupported elements or special characters.'))
           : MusicContent(
         xmlContent: _fileContent!,
-        onPlay: _playMusic,
+        onPlay: () {
+          if (_isPlaying) {
+            setState(() => _isPlaying = false);
+          } else {
+            _playMusic();
+          }
+        },
+        onRewind: _rewindMusic,
+        isPlaying: _isPlaying,
         onTempoChanged: (value) {
           setState(() {
             _tempoMultiplier = value;
             if (_isPlaying) {
-              _playMusic(); // Restart playback with new tempo
+              _playMusic();
             }
           });
         },
@@ -335,11 +487,15 @@ class _MusicViewerState extends State<MusicViewer> {
 class MusicContent extends StatelessWidget {
   final String xmlContent;
   final VoidCallback onPlay;
+  final VoidCallback onRewind;
+  final bool isPlaying;
   final ValueChanged<double> onTempoChanged;
 
   const MusicContent({
     required this.xmlContent,
     required this.onPlay,
+    required this.onRewind,
+    required this.isPlaying,
     required this.onTempoChanged,
     Key? key,
   }) : super(key: key);
@@ -356,28 +512,51 @@ class MusicContent extends StatelessWidget {
           final scorePartwise = document.score.getElement('score-partwise');
           final movementTitle = scorePartwise?.getElement('movement-title')?.innerText ?? 'Unknown';
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Title: $movementTitle', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 16),
-                Text('Total Time: ${document.totalTimeSecs} seconds'),
-                const SizedBox(height: 16),
-                ElevatedButton(onPressed: onPlay, child: const Text('Play Music')),
-                const SizedBox(height: 16),
-                const Text('Adjust Tempo:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                Slider(
-                  value: context.findAncestorStateOfType<_MusicViewerState>()?._tempoMultiplier ?? 1.0,
-                  min: 0.5,
-                  max: 2.0,
-                  divisions: 15,
-                  label: '${((context.findAncestorStateOfType<_MusicViewerState>()?._tempoMultiplier ?? 1.0) * 100).toInt()}%',
-                  onChanged: onTempoChanged,
+          return Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Title: $movementTitle', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 16),
+                      Text('Total Time: ${document.totalTimeSecs} seconds'),
+                      const SizedBox(height: 16),
+                      const Text('Adjust Tempo:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Slider(
+                        value: context.findAncestorStateOfType<_MusicViewerState>()?._tempoMultiplier ?? 1.0,
+                        min: 0.5,
+                        max: 2.0,
+                        divisions: 15,
+                        label: '${((context.findAncestorStateOfType<_MusicViewerState>()?._tempoMultiplier ?? 1.0) * 100).toInt()}%',
+                        onChanged: onTempoChanged,
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.replay),
+                      onPressed: onRewind,
+                      tooltip: 'Rewind',
+                    ),
+                    const SizedBox(width: 16),
+                    IconButton(
+                      icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
+                      onPressed: onPlay,
+                      tooltip: isPlaying ? 'Pause' : 'Play',
+                    ),
+                  ],
+                ),
+              ),
+            ],
           );
         }
         return const Center(child: Text('No data available'));
