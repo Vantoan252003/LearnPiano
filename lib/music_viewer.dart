@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'dart:async';
+import 'package:simple_sheet_music/simple_sheet_music.dart';
 
 class MusicViewer extends StatefulWidget {
   final String filePath;
@@ -46,9 +47,15 @@ class _MusicViewerState extends State<MusicViewer> {
     _midiPro = MidiPro();
     final tempDir = await getTemporaryDirectory();
     final soundFontFile = File('${tempDir.path}/Grand_Piano.sf2');
-    final soundFontData = await DefaultAssetBundle.of(context).load('assets/Grand_Piano.sf2');
+    final soundFontData = await DefaultAssetBundle.of(
+      context,
+    ).load('assets/Grand_Piano.sf2');
     await soundFontFile.writeAsBytes(soundFontData.buffer.asUint8List());
-    _sfId = await _midiPro!.loadSoundfont(path: soundFontFile.path, bank: 0, program: 0);
+    _sfId = await _midiPro!.loadSoundfont(
+      path: soundFontFile.path,
+      bank: 0,
+      program: 0,
+    );
   }
 
   Future<void> _loadMusicFile() async {
@@ -69,7 +76,7 @@ class _MusicViewerState extends State<MusicViewer> {
       final bytes = await fileToRead.readAsBytes();
       final archive = ZipDecoder().decodeBytes(bytes);
       final xmlFile = archive.firstWhere(
-            (file) => file.name.endsWith('.xml') && !file.name.contains('META-INF'),
+        (file) => file.name.endsWith('.xml') && !file.name.contains('META-INF'),
         orElse: () => throw Exception('No MusicXML file found in .mxl archive'),
       );
       _fileContent = utf8.decode(xmlFile.content as List<int>);
@@ -88,7 +95,8 @@ class _MusicViewerState extends State<MusicViewer> {
   Future<void> _parseMusicXml(String xmlContent) async {
     final document = MusicXmlDocument.parse(xmlContent);
     final scorePartwise = document.score.getElement('score-partwise');
-    if (scorePartwise == null) throw Exception('Invalid MusicXML: No score-partwise found');
+    if (scorePartwise == null)
+      throw Exception('Invalid MusicXML: No score-partwise found');
 
     _midiEvents.clear();
     double currentTime = 0.0;
@@ -96,7 +104,8 @@ class _MusicViewerState extends State<MusicViewer> {
     int divisions = 1;
     Map<String, int> keySignature = {};
     Map<String, int> measureAccidentals = {};
-    List<Map<String, dynamic>> tempMidiEvents = []; // Lưu tạm MIDI events trước khi xử lý repeat
+    List<Map<String, dynamic>> tempMidiEvents =
+        []; // Lưu tạm MIDI events trước khi xử lý repeat
     List<int> repeatStartMeasures = []; // Lưu số thứ tự measure bắt đầu repeat
     List<int> repeatEndMeasures = []; // Lưu số thứ tự measure kết thúc repeat
     int measureCount = 0;
@@ -106,23 +115,30 @@ class _MusicViewerState extends State<MusicViewer> {
       for (var measure in part.findAllElements('measure')) {
         final direction = measure.getElement('direction');
         if (direction != null) {
-          final soundTempo = direction.getElement('sound')?.getAttribute('tempo');
+          final soundTempo = direction
+              .getElement('sound')
+              ?.getAttribute('tempo');
           if (soundTempo != null) {
             baseTempo = double.parse(soundTempo);
             break;
           }
-          final metronome = direction.getElement('direction-type')?.getElement('metronome');
+          final metronome = direction
+              .getElement('direction-type')
+              ?.getElement('metronome');
           if (metronome != null) {
             final beatUnit = metronome.getElement('beat-unit')?.innerText;
             final perMinute = metronome.getElement('per-minute')?.innerText;
-            if (beatUnit != null && perMinute != null && beatUnit == 'quarter') {
+            if (beatUnit != null &&
+                perMinute != null &&
+                beatUnit == 'quarter') {
               baseTempo = double.parse(perMinute);
               break;
             }
           }
         }
       }
-      if (baseTempo != 120.0) break; // Thoát vòng lặp part nếu đã tìm thấy tempo
+      if (baseTempo != 120.0)
+        break; // Thoát vòng lặp part nếu đã tìm thấy tempo
     }
 
     // Xử lý các measure
@@ -148,29 +164,38 @@ class _MusicViewerState extends State<MusicViewer> {
         final attributes = measure.getElement('attributes');
         if (attributes != null) {
           final divisionsElement = attributes.getElement('divisions');
-          divisions = divisionsElement != null
-              ? int.parse(divisionsElement.innerText)
-              : divisions;
+          divisions =
+              divisionsElement != null
+                  ? int.parse(divisionsElement.innerText)
+                  : divisions;
           divisions = divisions > 0 ? divisions : 1;
 
           final keyElement = attributes.getElement('key');
           if (keyElement != null) {
-            final fifths = int.parse(keyElement.getElement('fifths')?.innerText ?? '0');
+            final fifths = int.parse(
+              keyElement.getElement('fifths')?.innerText ?? '0',
+            );
             keySignature = _getKeySignatureAlterations(fifths);
           }
         }
 
         final direction = measure.getElement('direction');
         if (direction != null) {
-          final soundTempo = direction.getElement('sound')?.getAttribute('tempo');
+          final soundTempo = direction
+              .getElement('sound')
+              ?.getAttribute('tempo');
           if (soundTempo != null) {
             baseTempo = double.parse(soundTempo);
           }
-          final metronome = direction.getElement('direction-type')?.getElement('metronome');
+          final metronome = direction
+              .getElement('direction-type')
+              ?.getElement('metronome');
           if (metronome != null) {
             final beatUnit = metronome.getElement('beat-unit')?.innerText;
             final perMinute = metronome.getElement('per-minute')?.innerText;
-            if (beatUnit != null && perMinute != null && beatUnit == 'quarter') {
+            if (beatUnit != null &&
+                perMinute != null &&
+                beatUnit == 'quarter') {
               baseTempo = double.parse(perMinute);
             }
           }
@@ -183,7 +208,9 @@ class _MusicViewerState extends State<MusicViewer> {
         for (var element in measure.findAllElements('*')) {
           if (element.name.local == 'note') {
             final pitch = element.getElement('pitch');
-            final duration = double.parse(element.getElement('duration')?.innerText ?? '1');
+            final duration = double.parse(
+              element.getElement('duration')?.innerText ?? '1',
+            );
             final durationInSeconds = (duration / divisions) * (60 / baseTempo);
             bool isFermata = false;
             bool isStaccato = false;
@@ -202,18 +229,29 @@ class _MusicViewerState extends State<MusicViewer> {
               }
               for (var slur in notations.findAllElements('slur')) {
                 final type = slur.getAttribute('type');
-                if (type == 'start') isSlurStart = true;
-                else if (type == 'stop') isSlurEnd = true;
+                if (type == 'start')
+                  isSlurStart = true;
+                else if (type == 'stop')
+                  isSlurEnd = true;
               }
             }
 
             if (pitch != null) {
               final step = pitch.getElement('step')?.innerText;
-              final octave = int.parse(pitch.getElement('octave')?.innerText ?? '4');
+              final octave = int.parse(
+                pitch.getElement('octave')?.innerText ?? '4',
+              );
               final accidental = element.getElement('accidental')?.innerText;
               final isChord = element.getElement('chord') != null;
               final noteKey = '$step$octave';
-              final midiNote = _stepToMidiNote(step, octave, keySignature, accidental, measureAccidentals, noteKey);
+              final midiNote = _stepToMidiNote(
+                step,
+                octave,
+                keySignature,
+                accidental,
+                measureAccidentals,
+                noteKey,
+              );
 
               if (midiNote != null) {
                 double adjustedDuration = durationInSeconds;
@@ -250,10 +288,14 @@ class _MusicViewerState extends State<MusicViewer> {
               currentTime += durationInSeconds;
             }
           } else if (element.name.local == 'forward') {
-            final duration = double.parse(element.getElement('duration')?.innerText ?? '0');
+            final duration = double.parse(
+              element.getElement('duration')?.innerText ?? '0',
+            );
             currentTime += (duration / divisions) * (60 / baseTempo);
           } else if (element.name.local == 'backup') {
-            final duration = double.parse(element.getElement('duration')?.innerText ?? '0');
+            final duration = double.parse(
+              element.getElement('duration')?.innerText ?? '0',
+            );
             currentTime -= (duration / divisions) * (60 / baseTempo);
           }
         }
@@ -273,15 +315,20 @@ class _MusicViewerState extends State<MusicViewer> {
     }
 
     // Xử lý repeat để tạo _midiEvents
-    _midiEvents = _processRepeats(tempMidiEvents, repeatStartMeasures, repeatEndMeasures);
+    _midiEvents = _processRepeats(
+      tempMidiEvents,
+      repeatStartMeasures,
+      repeatEndMeasures,
+    );
 
     _midiEvents.sort((a, b) => a['startTime'].compareTo(b['startTime']));
   }
 
   List<Map<String, dynamic>> _processRepeats(
-      List<Map<String, dynamic>> events,
-      List<int> startMeasures,
-      List<int> endMeasures) {
+    List<Map<String, dynamic>> events,
+    List<int> startMeasures,
+    List<int> endMeasures,
+  ) {
     List<Map<String, dynamic>> finalEvents = [];
     int currentMeasure = 1;
     int repeatIndex = 0;
@@ -307,9 +354,18 @@ class _MusicViewerState extends State<MusicViewer> {
         inRepeat = false;
         // Quay lại measure bắt đầu repeat
         final startMeasure = startMeasures[repeatIndex - 1];
-        final repeatEvents = events.where((e) => e['measure'] >= startMeasure && e['measure'] <= measure).toList();
+        final repeatEvents =
+            events
+                .where(
+                  (e) =>
+                      e['measure'] >= startMeasure && e['measure'] <= measure,
+                )
+                .toList();
         // Tính thời gian của đoạn repeat
-        final repeatDuration = repeatEvents.last['startTime'] + repeatEvents.last['duration'] - repeatEvents.first['startTime'];
+        final repeatDuration =
+            repeatEvents.last['startTime'] +
+            repeatEvents.last['duration'] -
+            repeatEvents.first['startTime'];
         timeOffset += repeatDuration;
         // Thêm lại các event của đoạn repeat
         for (var repeatEvent in repeatEvents) {
@@ -339,7 +395,14 @@ class _MusicViewerState extends State<MusicViewer> {
     return alterations;
   }
 
-  int? _stepToMidiNote(String? step, int octave, Map<String, int> keySignature, String? accidental, Map<String, int> measureAccidentals, String noteKey) {
+  int? _stepToMidiNote(
+    String? step,
+    int octave,
+    Map<String, int> keySignature,
+    String? accidental,
+    Map<String, int> measureAccidentals,
+    String noteKey,
+  ) {
     if (step == null) return null;
     const noteMap = {'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11};
     final base = noteMap[step.toUpperCase()];
@@ -352,15 +415,17 @@ class _MusicViewerState extends State<MusicViewer> {
     }
 
     if (accidental != null) {
-      alteration = {
-        'sharp': 1,
-        'flat': -1,
-        'natural': 0,
-        'double-sharp': 2,
-        'double-flat': -2,
-        'sharp-sharp': 2,
-        'flat-flat': -2,
-      }[accidental] ?? 0;
+      alteration =
+          {
+            'sharp': 1,
+            'flat': -1,
+            'natural': 0,
+            'double-sharp': 2,
+            'double-flat': -2,
+            'sharp-sharp': 2,
+            'flat-flat': -2,
+          }[accidental] ??
+          0;
       measureAccidentals[noteKey] = alteration;
     }
 
@@ -379,30 +444,37 @@ class _MusicViewerState extends State<MusicViewer> {
     setState(() => _isPlaying = true);
 
     final events = [
-      ..._midiEvents.map((e) => {
-        'midiNotes': e['midiNotes'],
-        'time': e['startTime'] / _tempoMultiplier,
-        'duration': e['duration'] / _tempoMultiplier,
-        'action': 'start',
-        'isSlurStart': e['isSlurStart'] ?? false,
-        'isSlurEnd': e['isSlurEnd'] ?? false,
-      }),
-      ..._midiEvents.map((e) => {
-        'midiNotes': e['midiNotes'],
-        'time': (e['startTime'] + e['duration']) / _tempoMultiplier,
-        'action': 'stop',
-        'isSlurStart': e['isSlurStart'] ?? false,
-        'isSlurEnd': e['isSlurEnd'] ?? false,
-      }),
+      ..._midiEvents.map(
+        (e) => {
+          'midiNotes': e['midiNotes'],
+          'time': e['startTime'] / _tempoMultiplier,
+          'duration': e['duration'] / _tempoMultiplier,
+          'action': 'start',
+          'isSlurStart': e['isSlurStart'] ?? false,
+          'isSlurEnd': e['isSlurEnd'] ?? false,
+        },
+      ),
+      ..._midiEvents.map(
+        (e) => {
+          'midiNotes': e['midiNotes'],
+          'time': (e['startTime'] + e['duration']) / _tempoMultiplier,
+          'action': 'stop',
+          'isSlurStart': e['isSlurStart'] ?? false,
+          'isSlurEnd': e['isSlurEnd'] ?? false,
+        },
+      ),
     ]..sort((a, b) => a['time'].compareTo(b['time']));
 
     final startTime = DateTime.now();
     int eventIndex = 0;
 
     while (eventIndex < events.length && _isPlaying && mounted) {
-      final elapsedSeconds = DateTime.now().difference(startTime).inMilliseconds / 1000.0;
+      final elapsedSeconds =
+          DateTime.now().difference(startTime).inMilliseconds / 1000.0;
 
-      while (eventIndex < events.length && events[eventIndex]['time'] <= elapsedSeconds && _isPlaying) {
+      while (eventIndex < events.length &&
+          events[eventIndex]['time'] <= elapsedSeconds &&
+          _isPlaying) {
         final event = events[eventIndex];
         final midiNotes = event['midiNotes'] as List<int>;
         final action = event['action'] as String;
@@ -416,7 +488,12 @@ class _MusicViewerState extends State<MusicViewer> {
 
         for (var midi in midiNotes) {
           if (action == 'start') {
-            await _midiPro!.playNote(channel: 0, key: midi, velocity: velocity, sfId: _sfId!);
+            await _midiPro!.playNote(
+              channel: 0,
+              key: midi,
+              velocity: velocity,
+              sfId: _sfId!,
+            );
           } else {
             await _midiPro!.stopNote(channel: 0, key: midi, sfId: _sfId!);
           }
@@ -456,30 +533,35 @@ class _MusicViewerState extends State<MusicViewer> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(widget.fileName)),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _fileContent == null
-          ? const Center(child: Text('Error: Unable to parse this MusicXML file. It may contain unsupported elements or special characters.'))
-          : MusicContent(
-        xmlContent: _fileContent!,
-        onPlay: () {
-          if (_isPlaying) {
-            setState(() => _isPlaying = false);
-          } else {
-            _playMusic();
-          }
-        },
-        onRewind: _rewindMusic,
-        isPlaying: _isPlaying,
-        onTempoChanged: (value) {
-          setState(() {
-            _tempoMultiplier = value;
-            if (_isPlaying) {
-              _playMusic();
-            }
-          });
-        },
-      ),
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _fileContent == null
+              ? const Center(
+                child: Text(
+                  'Error: Unable to parse this MusicXML file. It may contain unsupported elements or special characters.',
+                ),
+              )
+              : MusicContent(
+                xmlContent: _fileContent!,
+                onPlay: () {
+                  if (_isPlaying) {
+                    setState(() => _isPlaying = false);
+                  } else {
+                    _playMusic();
+                  }
+                },
+                onRewind: _rewindMusic,
+                isPlaying: _isPlaying,
+                onTempoChanged: (value) {
+                  setState(() {
+                    _tempoMultiplier = value;
+                    if (_isPlaying) {
+                      _playMusic();
+                    }
+                  });
+                },
+              ),
     );
   }
 }
@@ -500,7 +582,6 @@ class MusicContent extends StatelessWidget {
     Key? key,
   }) : super(key: key);
 
-  @override
   Widget build(BuildContext context) {
     return FutureBuilder<MusicXmlDocument>(
       future: Future.value(MusicXmlDocument.parse(xmlContent)),
@@ -510,8 +591,9 @@ class MusicContent extends StatelessWidget {
         } else if (snapshot.hasData) {
           final document = snapshot.data!;
           final scorePartwise = document.score.getElement('score-partwise');
-          final movementTitle = scorePartwise?.getElement('movement-title')?.innerText ?? 'Unknown';
-
+          final movementTitle =
+              scorePartwise?.getElement('movement-title')?.innerText ??
+                  'Unknown';
           return Column(
             children: [
               Expanded(
@@ -520,23 +602,63 @@ class MusicContent extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Title: $movementTitle', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      // Tiêu đề bản nhạc
+                      Text(
+                        'Title: $movementTitle',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 16),
+                      // Hiển thị sheet nhạc
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: SimpleSheetMusic(
+                          key: key,
+                          measures: [
+                          ],
+                          initialClefType: ClefType.treble,
+                          initialKeySignatureType: KeySignatureType.cMajor,
+                          height: 400.0,
+                          width: 400.0,
+                          lineColor: Colors.black54,
+                          fontType: FontType.bravura,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Tổng thời gian
                       Text('Total Time: ${document.totalTimeSecs} seconds'),
                       const SizedBox(height: 16),
-                      const Text('Adjust Tempo:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      // Điều chỉnh tempo
+                      const Text(
+                        'Adjust Tempo:',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       Slider(
-                        value: context.findAncestorStateOfType<_MusicViewerState>()?._tempoMultiplier ?? 1.0,
+                        value:
+                            context
+                                .findAncestorStateOfType<_MusicViewerState>()
+                                ?._tempoMultiplier ??
+                            1.0,
                         min: 0.5,
                         max: 2.0,
                         divisions: 15,
-                        label: '${((context.findAncestorStateOfType<_MusicViewerState>()?._tempoMultiplier ?? 1.0) * 100).toInt()}%',
+                        label:
+                            '${((context.findAncestorStateOfType<_MusicViewerState>()?._tempoMultiplier ?? 1.0) * 100).toInt()}%',
                         onChanged: onTempoChanged,
                       ),
                     ],
                   ),
                 ),
               ),
+              // Nút điều khiển phát/tua lại
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16.0),
                 child: Row(
@@ -559,8 +681,10 @@ class MusicContent extends StatelessWidget {
             ],
           );
         }
+
         return const Center(child: Text('No data available'));
       },
+
     );
   }
 }
