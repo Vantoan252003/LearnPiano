@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:music_xml/music_xml.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:convert';
+import 'dart:async';
 import 'music_controls.dart';
 
 class MusicContent extends StatefulWidget {
@@ -42,6 +43,8 @@ class _MusicContentState extends State<MusicContent> {
   String? documentTitle;
   bool isWebViewReady = false;
   double _scale = 1.0;
+  Timer? _debounceTimer;
+  PlaybackPosition? _lastPosition;
 
   @override
   void initState() {
@@ -60,6 +63,15 @@ class _MusicContentState extends State<MusicContent> {
         ),
       )
       ..addJavaScriptChannel(
+        'PlaybackPositionChannel',
+        onMessageReceived: (JavaScriptMessage message) {
+          final data = jsonDecode(message.message);
+          if (isWebViewReady && data['measure'] != null && data['note'] != null) {
+            _highlightNote(data['measure'], data['note']);
+          }
+        },
+      )
+      ..addJavaScriptChannel(
         'NoteEventChannel',
         onMessageReceived: (JavaScriptMessage message) {
           final data = jsonDecode(message.message);
@@ -72,26 +84,36 @@ class _MusicContentState extends State<MusicContent> {
 
     _extractTitleFromXML();
 
-    // Đăng ký lắng nghe vị trí phát
     widget.playbackPositionStream?.listen((position) {
-      if (isWebViewReady) {
-        _highlightNote(position.measure, position.note);
+      if (_lastPosition?.measure != position.measure || _lastPosition?.note != position.note) {
+        _lastPosition = position;
+        _debounceTimer?.cancel();
+        _debounceTimer = Timer(const Duration(milliseconds: 100), () {
+          if (isWebViewReady) {
+            final jsonPosition = jsonEncode({'measure': position.measure, 'note': position.note});
+            controller.runJavaScript('updatePlaybackPosition($jsonPosition)');
+          }
+        });
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
   }
 
   @override
   void didUpdateWidget(MusicContent oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // Kiểm tra trạng thái phát nhạc thay đổi
     if (widget.isPlaying != oldWidget.isPlaying) {
       if (!widget.isPlaying) {
         _clearHighlights();
       }
     }
 
-    // Nếu nội dung XML thay đổi, tải lại
     if (widget.xmlContent != oldWidget.xmlContent) {
       _extractTitleFromXML();
       _loadMusicXML();
@@ -248,7 +270,6 @@ class _MusicContentState extends State<MusicContent> {
               if (notes.length > 0) {
                 notes.forEach((noteElement, idx) => {
                   noteElement.addEventListener("click", () => {
-                    // Find the measure and note index
                     let measureIdx = -1;
                     let noteIdx = -1;
                     for (let m = 0; m < osmd.graphic.measureList.length; m++) {
@@ -260,7 +281,7 @@ class _MusicContentState extends State<MusicContent> {
                           for (let v = 0; v < entry.graphicalVoiceEntries.length; v++) {
                             const voiceEntry = entry.graphicalVoiceEntries[v];
                             for (let note of voiceEntry.notes) {
-                              if (note.sourceNote === osmd.cursor.NotesUnderCursor()[idx]?.sourceNote) {
+                              if (note.sourceNote && noteElement.getAttribute('data-id') === `\${note.sourceNote.NoteId}`) {
                                 measureIdx = m;
                                 noteIdx = n;
                                 break;
@@ -291,31 +312,69 @@ class _MusicContentState extends State<MusicContent> {
           }
         }
 
+        function updatePlaybackPosition(position) {
+          if (position.measure !== undefined && position.note !== undefined) {
+            highlightNote(position.measure, position.note);
+          } else {
+            console.warn("Invalid playback position:", position);
+          }
+        }
+
         function highlightNote(measureIndex, noteIndex) {
-          if (!osmd || !cursor) return;
+          if (!osmd || !cursor) {
+            console.error("OSMD or cursor not initialized");
+            return;
+          }
+
+          // Adjust measureIndex (OSMD uses 0-based, MusicXML uses 1-based)
+          measureIndex = measureIndex - 1;
+          if (measureIndex < 0 || measureIndex >= osmd.graphic.measureList.length) {
+            console.error("Invalid measure index:", measureIndex, "Total measures:", osmd.graphic.measureList.length);
+            return;
+          }
+
+          // Validate noteIndex
+          const measure = osmd.graphic.measureList[measureIndex];
+          if (!measure || measure.length === 0 || !measure[0].staffEntries) {
+            console.error("Invalid measure structure at index:", measureIndex);
+            return;
+          }
+          const staffEntries = measure[0].staffEntries;
+          if (noteIndex < 0 || noteIndex >= staffEntries.length) {
+            console.error("Invalid note index:", noteIndex, "Total notes in measure:", staffEntries.length);
+            return;
+          }
 
           clearHighlights();
 
-          // Move cursor to the correct position
           cursor.reset();
-          for (let i = 0; i <= measureIndex; i++) {
-            for (let j = 0; j < (i === measureIndex ? noteIndex + 1 : osmd.graphic.measureList[i][0].staffEntries.length); j++) {
-              cursor.next();
+          try {
+            for (let i = 0; i <= measureIndex; i++) {
+              const maxNotes = (i === measureIndex) ? noteIndex + 1 : osmd.graphic.measureList[i][0].staffEntries.length;
+              for (let j = 0; j < maxNotes; j++) {
+                if (i === measureIndex && j === noteIndex) break;
+                cursor.next();
+              }
             }
-          }
 
-          // Highlight the note
-          const notesUnderCursor = osmd.cursor.NotesUnderCursor();
-          if (notesUnderCursor && notesUnderCursor.length > 0) {
-            const noteElement = document.querySelector(`.vf-stavenote[data-id="\${notesUnderCursor[0].sourceNote.NoteId}"]`);
-            if (noteElement) {
-              noteElement.classList.add("highlighted-note");
+            const notesUnderCursor = osmd.cursor.NotesUnderCursor();
+            if (notesUnderCursor && notesUnderCursor.length > 0) {
+              const noteElement = document.querySelector(`.vf-stavenote[data-id="\${notesUnderCursor[0].sourceNote.NoteId}"]`);
+              if (noteElement) {
+                noteElement.classList.add("highlighted-note");
+              } else {
+                console.warn("Note element not found for cursor position");
+              }
+            } else {
+              console.warn("No notes under cursor at measure", measureIndex, "note", noteIndex);
             }
-          }
 
-          lastMeasure = measureIndex;
-          lastNote = noteIndex;
-          scrollCursorIntoView();
+            lastMeasure = measureIndex;
+            lastNote = noteIndex;
+            scrollCursorIntoView();
+          } catch (err) {
+            console.error("Error moving cursor:", err);
+          }
         }
 
         function scrollCursorIntoView() {
@@ -326,6 +385,8 @@ class _MusicContentState extends State<MusicContent> {
                 behavior: "smooth",
                 block: "center"
               });
+            } else {
+              console.warn("Cursor element not found");
             }
           }, 100);
         }
@@ -349,7 +410,6 @@ class _MusicContentState extends State<MusicContent> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Zoom controls in a compact header
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
           color: Colors.grey[100],
@@ -385,7 +445,6 @@ class _MusicContentState extends State<MusicContent> {
           ),
         ),
 
-        // Sheet music area (maximized)
         Expanded(
           flex: 9,
           child: Container(
@@ -400,7 +459,6 @@ class _MusicContentState extends State<MusicContent> {
           ),
         ),
 
-        // Playback controls
         MusicControls(
           onPlay: widget.onPlay,
           onRewind: widget.onRewind,

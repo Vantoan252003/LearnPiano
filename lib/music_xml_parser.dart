@@ -18,9 +18,7 @@ class MusicXmlParser {
     List<int> repeatEndMeasures = [];
     int measureCount = 0;
 
-    // Lặp qua các phần tử con của scorePartwise để tìm 'part'
     for (var part in scorePartwise.children.whereType<xml.XmlElement>().where((e) => e.name.local == 'part')) {
-      // Lặp qua các phần tử con của part để tìm 'measure'
       for (var measure in part.children.whereType<xml.XmlElement>().where((e) => e.name.local == 'measure')) {
         final direction = measure.getElement('direction');
         if (direction != null) {
@@ -48,8 +46,8 @@ class MusicXmlParser {
       for (var measure in part.children.whereType<xml.XmlElement>().where((e) => e.name.local == 'measure')) {
         measureCount++;
         measureAccidentals.clear();
+        int noteIndex = 0; // Đếm chỉ số nốt trong mỗi measure
 
-        // Lặp qua các phần tử con của measure để tìm 'barline'
         for (var barline in measure.children.whereType<xml.XmlElement>().where((e) => e.name.local == 'barline')) {
           final repeat = barline.getElement('repeat');
           if (repeat != null) {
@@ -95,7 +93,6 @@ class MusicXmlParser {
         double chordStartTime = currentTime;
         double chordDuration = 0.0;
 
-        // Lặp qua tất cả phần tử con của measure
         for (var element in measure.children.whereType<xml.XmlElement>()) {
           if (element.name.local == 'note') {
             final pitch = element.getElement('pitch');
@@ -159,12 +156,14 @@ class MusicXmlParser {
                       'isSlurStart': isSlurStart,
                       'isSlurEnd': isSlurEnd,
                       'measure': measureCount,
+                      'noteIndex': noteIndex - 1, // Gán noteIndex cho chord trước đó
                     });
                     chordNotes.clear();
                   }
                   chordNotes.add(midiNote);
                   chordStartTime = currentTime;
                   chordDuration = adjustedDuration;
+                  noteIndex++; // Tăng chỉ số nốt sau mỗi nốt không phải chord
                 }
                 if (!isChord) currentTime += durationInSeconds;
               }
@@ -189,6 +188,7 @@ class MusicXmlParser {
             'isSlurStart': false,
             'isSlurEnd': false,
             'measure': measureCount,
+            'noteIndex': noteIndex, // Gán noteIndex cho chord cuối
           });
         }
       }
@@ -243,8 +243,7 @@ class MusicXmlParser {
         'double-flat': -2,
         'sharp-sharp': 2,
         'flat-flat': -2,
-      }[accidental] ??
-          0;
+      }[accidental] ?? 0;
       measureAccidentals[noteKey] = alteration;
     }
 
