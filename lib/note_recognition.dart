@@ -70,7 +70,7 @@ class _NoteRecognitionState extends State<NoteRecognition> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Đúng! +1 điểm"),
+          content: Text("Đúng! +1 điểm", style: TextStyle(fontSize: 16)),
           backgroundColor: Colors.green,
           duration: Duration(seconds: 1),
         ),
@@ -81,7 +81,7 @@ class _NoteRecognitionState extends State<NoteRecognition> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Sai! -1 điểm"),
+          content: Text("Sai! -1 điểm", style: TextStyle(fontSize: 16)),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 1),
         ),
@@ -97,7 +97,7 @@ class _NoteRecognitionState extends State<NoteRecognition> {
         backgroundColor: Colors.black,
         title: const Text(
           "Nhận diện nốt nhạc",
-          style: TextStyle(color: Colors.white, fontSize: 24),
+          style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
         ),
       ),
       body: Center(
@@ -106,30 +106,27 @@ class _NoteRecognitionState extends State<NoteRecognition> {
           children: [
             Container(
               height: 150,
-              width: 300,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.white),
-              ),
+              width: 450,
               child: CustomPaint(
                 painter: StaffAndNotePainter(currentNote),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
             Text(
               "Điểm: $score",
-              style: const TextStyle(color: Colors.white, fontSize: 24),
+              style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
             ),
             Text(
               "Điểm cao nhất: $highScore",
-              style: const TextStyle(color: Colors.white70, fontSize: 18),
+              style: const TextStyle(color: Colors.white70, fontSize: 20),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
             GridView.count(
               crossAxisCount: 5,
               shrinkWrap: true,
-              crossAxisSpacing: 5,
-              mainAxisSpacing: 5,
-              padding: const EdgeInsets.all(10),
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              padding: const EdgeInsets.all(12),
               children: notes.map((note) {
                 return ElevatedButton(
                   onPressed: () {
@@ -142,10 +139,12 @@ class _NoteRecognitionState extends State<NoteRecognition> {
                     backgroundColor: selectedNote == note
                         ? (selectedNote == currentNote ? Colors.green : Colors.red)
                         : Colors.grey[300],
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   ),
                   child: Text(
                     note,
-                    style: const TextStyle(color: Colors.black),
+                    style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 );
               }).toList(),
@@ -166,14 +165,15 @@ class StaffAndNotePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = Colors.white
-      ..strokeWidth = 1.0;
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
 
     // Vẽ 5 đường kẻ khuông nhạc
-    double lineSpacing = size.height / 5; // Chia đều cho 5 đường kẻ
-    for (int i = 0; i < 5; i++) { // Chỉ vẽ 5 đường
+    double lineSpacing = (size.height - 40) / 4; // Giảm khoảng cách để xích lên trên nữa
+    for (int i = 0; i < 5; i++) {
       canvas.drawLine(
-        Offset(0, i * lineSpacing),
-        Offset(size.width, i * lineSpacing),
+        Offset(20, 5 + i * lineSpacing), // Xích lên trên hơn bằng cách giảm offset
+        Offset(size.width - 20, 5 + i * lineSpacing),
         paint,
       );
     }
@@ -184,41 +184,42 @@ class StaffAndNotePainter extends CustomPainter {
         text: '\u{1D11E}', // Unicode của khóa Sol
         style: TextStyle(
           fontFamily: 'MusicalSymbols',
-          fontSize: 80,
+          fontSize: 105,
           color: Colors.white,
+          fontWeight: FontWeight.bold,
         ),
       ),
       textDirection: TextDirection.ltr,
     )
       ..layout()
-      ..paint(canvas, Offset(0, lineSpacing - 20));
+      ..paint(canvas, Offset(20, 5 + lineSpacing - 30)); // Xích lên trên và căn chỉnh
 
     // Vẽ nốt nhạc
     if (note != null) {
       // Bảng ánh xạ vị trí nốt trên khuông nhạc (Treble Clef, từ C4 đến B4)
       final Map<String, double> notePositions = {
-        'C': 5.0,  // Đường kẻ phụ dưới
-        'C#': 5.0,
-        'Db': 5.0,
-        'D': 4.5,
-        'D#': 4.5,
-        'Eb': 4.5,
-        'E': 4.0,  // Đường kẻ 1
-        'F': 3.5,
-        'F#': 3.5,
-        'Gb': 3.5,
-        'G': 3.0,  // Đường kẻ 2
-        'G#': 3.0,
-        'Ab': 3.0,
-        'A': 2.5,
-        'A#': 2.5,
-        'Bb': 2.5,
-        'B': 2.0,  // Đường kẻ 3
-        'Cb': 2.0,
+        'C': 4.0,  // Đường kẻ phụ dưới
+        'C#': 4.0,
+        'Db': 4.0,
+        'D': 3.5,
+        'D#': 3.5,
+        'Eb': 3.5,
+        'E': 3.0,  // Đường kẻ 1
+        'F': 2.5,
+        'F#': 2.5,
+        'Gb': 2.5,
+        'G': 2.0,  // Đường kẻ 2
+        'G#': 2.0,
+        'Ab': 2.0,
+        'A': 1.5,
+        'A#': 1.5,
+        'Bb': 1.5,
+        'B': 1.0,  // Đường kẻ 3
+        'Cb': 1.0,
       };
 
-      final positionIndex = notePositions[note!] ?? 3.0;
-      final yPosition = positionIndex * lineSpacing;
+      final positionIndex = notePositions[note!] ?? 2.0;
+      final yPosition = 5 + positionIndex * lineSpacing; // Xích lên trên
 
       // Vẽ dấu thăng/giáng nếu có
       if (note!.contains('#') || note!.contains('b')) {
@@ -226,14 +227,15 @@ class StaffAndNotePainter extends CustomPainter {
           text: TextSpan(
             text: note!.contains('#') ? '\u{266F}' : '\u{266D}', // Dấu thăng hoặc giáng
             style: const TextStyle(
-              fontSize: 40, // Tăng kích thước để rõ hơn
+              fontSize: 70,
               color: Colors.white,
+              fontWeight: FontWeight.bold,
             ),
           ),
           textDirection: TextDirection.ltr,
         )
           ..layout()
-          ..paint(canvas, Offset(size.width / 2 - 40, yPosition - 20)); // Điều chỉnh vị trí
+          ..paint(canvas, Offset(size.width / 2 - 50, yPosition - 35));
       }
 
       // Vẽ nốt (hình elip)
@@ -243,17 +245,17 @@ class StaffAndNotePainter extends CustomPainter {
       canvas.drawOval(
         Rect.fromCenter(
           center: Offset(size.width / 2, yPosition),
-          width: 14,
-          height: 10,
+          width: 30,
+          height: 20,
         ),
         notePaint,
       );
 
       // Vẽ đường kẻ phụ nếu nốt nằm ngoài khuông
-      if (positionIndex >= 5.0) {
+      if (positionIndex >= 4.0) {
         canvas.drawLine(
-          Offset(size.width / 2 - 20, 4 * lineSpacing),
-          Offset(size.width / 2 + 20, 4 * lineSpacing),
+          Offset(size.width / 2 - 20, 5 + 4 * lineSpacing),
+          Offset(size.width / 2 + 20, 5 + 4 * lineSpacing),
           paint,
         );
       }
