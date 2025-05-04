@@ -30,7 +30,7 @@ class AuthService {
       return userCredential.user;
     } on FirebaseAuthException catch (e) {
       print('FirebaseAuthException during registration: $e');
-      throw e;
+      rethrow;
     } catch (e) {
       print('Error during registration: $e');
       throw Exception('Đăng ký thất bại: $e');
@@ -48,7 +48,7 @@ class AuthService {
       return userCredential.user;
     } on FirebaseAuthException catch (e) {
       print('FirebaseAuthException during login: $e');
-      throw e;
+      rethrow;
     } catch (e) {
       print('Error during login: $e');
       throw Exception('Đăng nhập thất bại: $e');

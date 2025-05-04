@@ -7,7 +7,7 @@ import 'login_screen.dart';
 class RatingCommentScreen extends StatefulWidget {
   final String filePath;
 
-  const RatingCommentScreen({required this.filePath, Key? key}) : super(key: key);
+  const RatingCommentScreen({required this.filePath, super.key});
 
   @override
   _RatingCommentScreenState createState() => _RatingCommentScreenState();

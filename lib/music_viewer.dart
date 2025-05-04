@@ -18,8 +18,8 @@ class MusicViewer extends StatefulWidget {
     required this.filePath,
     required this.fileName,
     this.isLocalFile = false,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<MusicViewer> createState() => _MusicViewerState();

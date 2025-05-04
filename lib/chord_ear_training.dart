@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_piano_pro/flutter_piano_pro.dart';
-import 'dart:math';
 
 class ChordTraining extends StatefulWidget{
   const ChordTraining ({super.key});

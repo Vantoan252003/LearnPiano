@@ -114,8 +114,9 @@ class MusicXmlParser {
               }
               for (var slur in notations.children.whereType<xml.XmlElement>().where((e) => e.name.local == 'slur')) {
                 final type = slur.getAttribute('type');
-                if (type == 'start') isSlurStart = true;
-                else if (type == 'stop') isSlurEnd = true;
+                if (type == 'start') {
+                  isSlurStart = true;
+                } else if (type == 'stop') isSlurEnd = true;
               }
             }
 

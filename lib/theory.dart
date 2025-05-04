@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class TheoryPage extends StatelessWidget {
+  const TheoryPage({super.key});
+
   // Hàm để thêm dữ liệu mẫu vào Firestore
   Future<void> addSampleData() async {
     // Thêm dữ liệu vào collection "notes"

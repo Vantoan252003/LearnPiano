@@ -3,7 +3,6 @@ import 'package:learn_piano/play_sheet.dart';
 import 'package:learn_piano/profile_screen.dart';
 import 'package:learn_piano/theory.dart';
 import 'piano_challenge.dart';
-import 'theory.dart';
 import 'sheet_music.dart';
 import 'package:learn_piano/piano_keyboard.dart';
 import 'chord_ear_training.dart';
@@ -11,6 +10,7 @@ import 'eartrainning.dart';
 import 'auth_service.dart';
 import 'login_screen.dart';
 import 'change_password_screen.dart';
+import 'note_recognition.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,7 +22,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
-    // Kiểm tra trạng thái đăng nhập và lấy thông tin người dùng
     bool isLoggedIn = AuthService().getCurrentUser() != null;
     String? userEmail = AuthService().getCurrentUser()?.email;
 
@@ -57,7 +56,6 @@ class _HomeScreenState extends State<HomeScreen> {
           child: ListView(
             padding: EdgeInsets.zero,
             children: [
-              // Trong _HomeScreenState
               DrawerHeader(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -245,10 +243,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   ),
                   _buildMenuTile(
-                    "Luyện nhịp",
+                    "Nhận diện nốt nhạc",
                     Icons.music_note,
                     Colors.teal[600]!,
-                        () {},
+                        () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NoteRecognition(),
+                        ),
+                      );
+                    },
                   ),
                   _buildMenuTile(
                     "Lý thuyết",

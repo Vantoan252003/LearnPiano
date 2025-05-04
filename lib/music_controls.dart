@@ -13,8 +13,8 @@ class MusicControls extends StatelessWidget {
     required this.isPlaying,
     required this.tempoMultiplier,
     required this.onTempoChanged,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

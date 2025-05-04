@@ -28,8 +28,8 @@ class MusicContent extends StatefulWidget {
     required this.filePath,
     this.onNoteChanged,
     this.playbackPositionStream,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<MusicContent> createState() => _MusicContentState();
