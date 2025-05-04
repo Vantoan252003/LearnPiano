@@ -4,6 +4,8 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'music_controls.dart';
+import 'playback_position.dart';
+import 'rating_comment_screen.dart';
 
 class MusicContent extends StatefulWidget {
   final String xmlContent;
@@ -14,6 +16,7 @@ class MusicContent extends StatefulWidget {
   final ValueChanged<double> onTempoChanged;
   final void Function(int measure, int note)? onNoteChanged;
   final Stream<PlaybackPosition>? playbackPositionStream;
+  final String filePath;
 
   const MusicContent({
     required this.xmlContent,
@@ -22,6 +25,7 @@ class MusicContent extends StatefulWidget {
     required this.isPlaying,
     required this.tempoMultiplier,
     required this.onTempoChanged,
+    required this.filePath,
     this.onNoteChanged,
     this.playbackPositionStream,
     Key? key,
@@ -29,13 +33,6 @@ class MusicContent extends StatefulWidget {
 
   @override
   State<MusicContent> createState() => _MusicContentState();
-}
-
-class PlaybackPosition {
-  final int measure;
-  final int note;
-
-  PlaybackPosition(this.measure, this.note);
 }
 
 class _MusicContentState extends State<MusicContent> {
@@ -155,6 +152,14 @@ class _MusicContentState extends State<MusicContent> {
     if (isWebViewReady) {
       await controller.runJavaScript('clearHighlights()');
     }
+  }
+
+  void _showRatingCommentSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => RatingCommentScreen(filePath: widget.filePath),
+    );
   }
 
   String _buildHtmlWithOSMD() {
@@ -326,14 +331,12 @@ class _MusicContentState extends State<MusicContent> {
             return;
           }
 
-          // Adjust measureIndex (OSMD uses 0-based, MusicXML uses 1-based)
           measureIndex = measureIndex - 1;
           if (measureIndex < 0 || measureIndex >= osmd.graphic.measureList.length) {
             console.error("Invalid measure index:", measureIndex, "Total measures:", osmd.graphic.measureList.length);
             return;
           }
 
-          // Validate noteIndex
           const measure = osmd.graphic.measureList[measureIndex];
           if (!measure || measure.length === 0 || !measure[0].staffEntries) {
             console.error("Invalid measure structure at index:", measureIndex);
@@ -414,37 +417,56 @@ class _MusicContentState extends State<MusicContent> {
           padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
           color: Colors.grey[100],
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              IconButton(
-                icon: const Icon(Icons.zoom_out),
-                onPressed: () {
-                  setState(() {
-                    _scale = (_scale - 0.1).clamp(0.5, 2.0);
-                    _updateZoom();
-                  });
-                },
-                iconSize: 18,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+              Expanded(
+                child: Text(
+                  documentTitle ?? 'Loading...',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              Text('${(_scale * 100).round()}%', style: const TextStyle(fontSize: 12)),
-              IconButton(
-                icon: const Icon(Icons.zoom_in),
-                onPressed: () {
-                  setState(() {
-                    _scale = (_scale + 0.1).clamp(0.5, 2.0);
-                    _updateZoom();
-                  });
-                },
-                iconSize: 18,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.star_border),
+                    onPressed: _showRatingCommentSheet,
+                    tooltip: 'Đánh giá và bình luận',
+                    iconSize: 18,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.zoom_out),
+                    onPressed: () {
+                      setState(() {
+                        _scale = (_scale - 0.1).clamp(0.5, 2.0);
+                        _updateZoom();
+                      });
+                    },
+                    iconSize: 18,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  Text('${(_scale * 100).round()}%', style: const TextStyle(fontSize: 12)),
+                  IconButton(
+                    icon: const Icon(Icons.zoom_in),
+                    onPressed: () {
+                      setState(() {
+                        _scale = (_scale + 0.1).clamp(0.5, 2.0);
+                        _updateZoom();
+                      });
+                    },
+                    iconSize: 18,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
               ),
             ],
           ),
         ),
-
         Expanded(
           flex: 9,
           child: Container(
@@ -458,7 +480,6 @@ class _MusicContentState extends State<MusicContent> {
                 : const Center(child: CircularProgressIndicator()),
           ),
         ),
-
         MusicControls(
           onPlay: widget.onPlay,
           onRewind: widget.onRewind,

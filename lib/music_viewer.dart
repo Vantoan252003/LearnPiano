@@ -126,6 +126,11 @@ class _MusicViewerState extends State<MusicViewer> {
             }
           });
         },
+        filePath: widget.filePath,
+        playbackPositionStream: _midiHandler.positionStream,
+        onNoteChanged: (measure, note) {
+          _midiHandler.seekToPosition(measure, note);
+        },
       ),
     );
   }

@@ -3,14 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_midi_pro/flutter_midi_pro.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
-
-// Class để lưu trữ vị trí phát hiện tại
-class PlaybackPosition {
-  final int measure;
-  final int note;
-
-  PlaybackPosition(this.measure, this.note);
-}
+import 'playback_position.dart';
 
 class MidiHandler {
   final BuildContext context;
@@ -69,8 +62,8 @@ class MidiHandler {
           'action': 'start',
           'isSlurStart': e['isSlurStart'] ?? false,
           'isSlurEnd': e['isSlurEnd'] ?? false,
-          'measure': e['measure'] ?? 0,    // Thêm thông tin về measure
-          'noteIndex': e['noteIndex'] ?? 0, // Thêm thông tin về vị trí trong measure
+          'measure': e['measure'] ?? 0,
+          'noteIndex': e['noteIndex'] ?? 0,
         },
       ),
       ...midiEvents.map(
@@ -106,14 +99,11 @@ class MidiHandler {
           velocity = 100;
         }
 
-        // Nếu là sự kiện bắt đầu nốt nhạc, thông báo vị trí hiện tại
         if (action == 'start') {
-          // Phát ra sự kiện vị trí hiện tại
           final measure = event['measure'] as int;
           final noteIndex = event['noteIndex'] as int;
           _positionController.add(PlaybackPosition(measure, noteIndex));
 
-          // Phát âm thanh
           for (var midi in midiNotes) {
             await _midiPro!.playNote(
               channel: 0,
@@ -123,7 +113,6 @@ class MidiHandler {
             );
           }
         } else {
-          // Dừng nốt nhạc
           for (var midi in midiNotes) {
             await _midiPro!.stopNote(channel: 0, key: midi, sfId: _sfId!);
           }
@@ -144,7 +133,6 @@ class MidiHandler {
     _isPlaying = false;
   }
 
-  // Phát một nốt duy nhất (hữu ích khi người dùng click vào sheet nhạc)
   Future<void> playNote(int midiNote, {int velocity = 127}) async {
     if (_midiPro == null || _sfId == null) return;
 
@@ -155,14 +143,11 @@ class MidiHandler {
       sfId: _sfId!,
     );
 
-    // Tự động dừng nốt sau 500ms
     await Future.delayed(const Duration(milliseconds: 500));
     await _midiPro!.stopNote(channel: 0, key: midiNote, sfId: _sfId!);
   }
 
-  // Nhảy đến vị trí cụ thể trong sheet nhạc (khi người dùng click vào)
   void seekToPosition(int measure, int note) {
-    // Thông báo vị trí mới
     _positionController.add(PlaybackPosition(measure, note));
   }
 
@@ -172,7 +157,6 @@ class MidiHandler {
     if (_midiPro != null && _sfId != null) {
       _isPlaying = false;
     }
-    // Đóng StreamController khi không dùng nữa
     _positionController.close();
   }
 }
