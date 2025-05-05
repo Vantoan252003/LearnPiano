@@ -53,7 +53,35 @@ class RatingCommentHandler {
     }
   }
 
-  Future<void> saveComment(String filePath, String comment) async {
+  Future<int> getUserRating(String filePath) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        print('getUserRating: Người dùng chưa đăng nhập');
+        return 0;
+      }
+      final docId = filePath.replaceAll('/', '_').replaceAll('.', '_');
+      print('getUserRating: Truy vấn ratings/$docId/user_ratings/${user.uid}');
+      final doc = await _firestore
+          .collection('ratings')
+          .doc(docId)
+          .collection('user_ratings')
+          .doc(user.uid)
+          .get();
+      if (!doc.exists) {
+        print('getUserRating: Người dùng chưa đánh giá');
+        return 0;
+      }
+      final rating = doc.data()?['rating'] as int? ?? 0;
+      print('getUserRating: Đánh giá của người dùng: $rating');
+      return rating;
+    } catch (e) {
+      print('getUserRating: Lỗi lấy đánh giá người dùng: $e');
+      return 0;
+    }
+  }
+
+  Future<void> saveComment(String filePath, String comment, int rating) async {
     try {
       final user = _auth.currentUser;
       if (user == null) {
@@ -61,20 +89,54 @@ class RatingCommentHandler {
         throw Exception('Người dùng chưa đăng nhập');
       }
       final docId = filePath.replaceAll('/', '_').replaceAll('.', '_');
-      print('saveComment: Lưu bình luận cho filePath: $filePath, docId: $docId, user: ${user.uid}, displayName: ${user.displayName}, comment: $comment');
+      print('saveComment: Lưu bình luận cho filePath: $filePath, docId: $docId, user: ${user.uid}, displayName: ${user.displayName}, comment: $comment, rating: $rating');
       await _firestore
           .collection('comments')
           .doc(docId)
           .collection('comment_list')
           .add({
+        'userId': user.uid, // Lưu userId để kiểm tra khi xóa
         'displayName': user.displayName ?? 'Anonymous',
         'comment': comment,
+        'rating': rating,
         'timestamp': FieldValue.serverTimestamp(),
       });
       print('saveComment: Bình luận đã được lưu');
     } catch (e) {
       print('saveComment: Lỗi lưu bình luận: $e');
       throw Exception('Không thể lưu bình luận: $e');
+    }
+  }
+
+  Future<void> deleteComment(String filePath, String commentDocId) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        print('deleteComment: Người dùng chưa đăng nhập');
+        throw Exception('Người dùng chưa đăng nhập');
+      }
+      final docId = filePath.replaceAll('/', '_').replaceAll('.', '_');
+      print('deleteComment: Xóa bình luận filePath: $filePath, docId: $docId, commentDocId: $commentDocId');
+      final doc = await _firestore
+          .collection('comments')
+          .doc(docId)
+          .collection('comment_list')
+          .doc(commentDocId)
+          .get();
+      if (!doc.exists || doc.data()?['userId'] != user.uid) {
+        print('deleteComment: Không có quyền xóa bình luận');
+        throw Exception('Bạn không có quyền xóa bình luận này');
+      }
+      await _firestore
+          .collection('comments')
+          .doc(docId)
+          .collection('comment_list')
+          .doc(commentDocId)
+          .delete();
+      print('deleteComment: Bình luận đã được xóa');
+    } catch (e) {
+      print('deleteComment: Lỗi xóa bình luận: $e');
+      throw Exception('Không thể xóa bình luận: $e');
     }
   }
 
@@ -94,15 +156,21 @@ class RatingCommentHandler {
         if (!data.containsKey('displayName') || !data.containsKey('comment')) {
           print('getComments: Dữ liệu không hợp lệ: $data');
           return {
+            'docId': doc.id,
+            'userId': '',
             'displayName': 'Unknown',
             'comment': 'Dữ liệu lỗi',
+            'rating': 0,
             'timestamp': DateTime.now(),
           };
         }
-        print('getComments: Bình luận - displayName: ${data['displayName']}, comment: ${data['comment']}');
+        print('getComments: Bình luận - displayName: ${data['displayName']}, comment: ${data['comment']}, rating: ${data['rating']}');
         return {
+          'docId': doc.id, // Lưu ID tài liệu để xóa
+          'userId': data['userId'] as String? ?? '',
           'displayName': data['displayName'] as String,
           'comment': data['comment'] as String,
+          'rating': data['rating'] as int? ?? 0,
           'timestamp': (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
         };
       }).toList();
