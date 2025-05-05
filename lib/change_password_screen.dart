@@ -27,13 +27,15 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       if (AuthService().getCurrentUser() == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Bạn cần đăng nhập để thay đổi mật khẩu. Chuyển hướng đến màn hình đăng nhập...'),
+            content: Text(
+              'Bạn cần đăng nhập để thay đổi mật khẩu. Chuyển hướng đến màn hình đăng nhập...',
+            ),
           ),
         );
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const LoginScreen()),
-              (Route<dynamic> route) => false,
+          (Route<dynamic> route) => false,
         );
       }
     });
@@ -67,7 +69,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     // Kiểm tra mật khẩu và xác nhận mật khẩu
     if (newPassword != confirmPassword) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Mật khẩu xác nhận không khớp với mật khẩu mới.')),
+        const SnackBar(
+          content: Text('Mật khẩu xác nhận không khớp với mật khẩu mới.'),
+        ),
       );
       return;
     }
@@ -75,9 +79,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     // Kiểm tra định dạng mật khẩu mới
     String? passwordError = _validatePassword(newPassword);
     if (passwordError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(passwordError)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(passwordError)));
       return;
     }
 
@@ -85,7 +89,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     var connectivityResult = await Connectivity().checkConnectivity();
     if (connectivityResult == ConnectivityResult.none) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không có kết nối mạng. Vui lòng kiểm tra kết nối Wi-Fi hoặc dữ liệu di động và thử lại.')),
+        const SnackBar(
+          content: Text(
+            'Không có kết nối mạng. Vui lòng kiểm tra kết nối Wi-Fi hoặc dữ liệu di động và thử lại.',
+          ),
+        ),
       );
       return;
     }
@@ -102,29 +110,41 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         await user.reauthenticateWithCredential(credential);
 
         // Nếu xác thực thành công, tiến hành thay đổi mật khẩu
-        await user.updatePassword(newPassword).timeout(
-          const Duration(seconds: 10),
-          onTimeout: () {
-            throw Exception('Yêu cầu đã hết thời gian. Kết nối mạng có thể không ổn định. Vui lòng thử lại sau.');
-          },
-        );
+        await user
+            .updatePassword(newPassword)
+            .timeout(
+              const Duration(seconds: 10),
+              onTimeout: () {
+                throw Exception(
+                  'Yêu cầu đã hết thời gian. Kết nối mạng có thể không ổn định. Vui lòng thử lại sau.',
+                );
+              },
+            );
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Thay đổi mật khẩu thành công! Bạn có thể sử dụng mật khẩu mới để đăng nhập.'),
-            duration: const Duration(seconds: 5), // Hiển thị lâu hơn để người dùng đọc
+            content: const Text(
+              'Thay đổi mật khẩu thành công! Bạn có thể sử dụng mật khẩu mới để đăng nhập.',
+            ),
+            duration: const Duration(
+              seconds: 5,
+            ), // Hiển thị lâu hơn để người dùng đọc
           ),
         );
         Navigator.pop(context);
       } else {
-        throw Exception('Không tìm thấy người dùng. Vui lòng đăng nhập lại để tiếp tục.');
+        throw Exception(
+          'Không tìm thấy người dùng. Vui lòng đăng nhập lại để tiếp tục.',
+        );
       }
     } on FirebaseAuthException catch (e) {
       setState(() => _isLoading = false);
       if (e.code == 'requires-recent-login') {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Phiên đăng nhập đã hết hạn. Bạn sẽ được chuyển hướng đến màn hình đăng nhập để tiếp tục.'),
+            content: Text(
+              'Phiên đăng nhập đã hết hạn. Bạn sẽ được chuyển hướng đến màn hình đăng nhập để tiếp tục.',
+            ),
             duration: Duration(seconds: 5),
           ),
         );
@@ -132,22 +152,30 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const LoginScreen()),
-              (Route<dynamic> route) => false,
+          (Route<dynamic> route) => false,
         );
       } else if (e.code == 'wrong-password') {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Mật khẩu cũ không đúng. Vui lòng kiểm tra và nhập lại.')),
+          const SnackBar(
+            content: Text(
+              'Mật khẩu cũ không đúng. Vui lòng kiểm tra và nhập lại.',
+            ),
+          ),
         );
       } else {
         String errorMessage = _getErrorMessage(e);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(errorMessage)));
       }
     } catch (e) {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi không xác định: ${e.toString()}. Vui lòng thử lại sau.')),
+        SnackBar(
+          content: Text(
+            'Lỗi không xác định: ${e.toString()}. Vui lòng thử lại sau.',
+          ),
+        ),
       );
     }
   }
@@ -255,7 +283,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   ),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscureConfirmText ? Icons.visibility : Icons.visibility_off,
+                      _obscureConfirmText
+                          ? Icons.visibility
+                          : Icons.visibility_off,
                       color: Colors.grey,
                     ),
                     onPressed: () {
@@ -270,22 +300,22 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               _isLoading
                   ? const CircularProgressIndicator()
                   : ElevatedButton(
-                onPressed: _changePassword,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[700],
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 50,
-                    vertical: 15,
+                    onPressed: _changePassword,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[700],
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 50,
+                        vertical: 15,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Thay Đổi Mật Khẩu',
+                      style: TextStyle(color: Colors.white, fontSize: 18),
+                    ),
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Thay Đổi Mật Khẩu',
-                  style: TextStyle(color: Colors.white, fontSize: 18),
-                ),
-              ),
             ],
           ),
         ),

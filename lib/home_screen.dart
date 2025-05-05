@@ -11,6 +11,7 @@ import 'auth_service.dart';
 import 'login_screen.dart';
 import 'change_password_screen.dart';
 import 'note_recognition.dart';
+import 'bass_note_recognition.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -70,12 +71,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     CircleAvatar(
                       radius: 30,
-                      backgroundImage: AuthService().getCurrentUser()?.photoURL != null
-                          ? NetworkImage(AuthService().getCurrentUser()!.photoURL!)
-                          : null,
-                      child: AuthService().getCurrentUser()?.photoURL == null
-                          ? const Icon(Icons.person, size: 30, color: Colors.white)
-                          : null,
+                      backgroundImage:
+                          AuthService().getCurrentUser()?.photoURL != null
+                              ? NetworkImage(
+                                AuthService().getCurrentUser()!.photoURL!,
+                              )
+                              : null,
+                      child:
+                          AuthService().getCurrentUser()?.photoURL == null
+                              ? const Icon(
+                                Icons.person,
+                                size: 30,
+                                color: Colors.white,
+                              )
+                              : null,
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -99,30 +108,38 @@ class _HomeScreenState extends State<HomeScreen> {
                 _buildDrawerItem(Icons.person, "Hồ sơ", () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const ProfileScreen(),
+                    ),
                   );
                 }),
-                _buildDrawerItem(Icons.lock, "Thay đổi mật khẩu", () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ChangePasswordScreen()),
-                  );
-                }),
+              _buildDrawerItem(Icons.lock, "Thay đổi mật khẩu", () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ChangePasswordScreen(),
+                  ),
+                );
+              }),
               _buildDrawerItem(
                 isLoggedIn ? Icons.logout : Icons.login,
                 isLoggedIn ? "Đăng xuất" : "Đăng nhập",
-                    () async {
+                () async {
                   if (isLoggedIn) {
                     await AuthService().logout();
                     setState(() {});
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const LoginScreen(),
+                      ),
                     );
                   } else {
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const LoginScreen(),
+                      ),
                     );
                   }
                 },
@@ -233,7 +250,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     "Nhận diện phím đàn",
                     Icons.hearing,
                     Colors.purple[600]!,
-                        () {
+                    () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -243,10 +260,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   ),
                   _buildMenuTile(
-                    "Nhận diện nốt nhạc",
+                    "Nhận diện nốt nhạc (Khóa Sol)",
                     Icons.music_note,
                     Colors.teal[600]!,
-                        () {
+                    () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -256,10 +273,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   ),
                   _buildMenuTile(
+                    "Nhận diện nốt nhạc (Khóa Fa)",
+                    Icons.music_note_outlined,
+                    Colors.deepPurple[600]!,
+                    () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const BassNoteRecognition(),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildMenuTile(
                     "Lý thuyết",
                     Icons.book,
                     Colors.indigo[600]!,
-                        () {
+                    () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => TheoryPage()),
@@ -270,7 +300,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     "Sheet nhạc",
                     Icons.my_library_books,
                     Colors.orange[600]!,
-                        () {
+                    () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => SheetMusic()),
@@ -281,7 +311,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     "Xem sheet nhạc",
                     Icons.music_note,
                     Colors.green[600]!,
-                        () {
+                    () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => PlaySheet()),
@@ -292,7 +322,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     "Thành tựu",
                     Icons.emoji_events,
                     Colors.yellow[700]!,
-                        () {},
+                    () {},
                   ),
                 ],
               ),
@@ -317,11 +347,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildStatCircle(
-      String title,
-      String value,
-      IconData icon,
-      Color accentColor,
-      ) {
+    String title,
+    String value,
+    IconData icon,
+    Color accentColor,
+  ) {
     return Column(
       children: [
         CircleAvatar(
@@ -344,12 +374,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildFeaturedCard(
-      BuildContext context,
-      String title,
-      IconData icon,
-      Color color,
-      Widget destination,
-      ) {
+    BuildContext context,
+    String title,
+    IconData icon,
+    Color color,
+    Widget destination,
+  ) {
     return Card(
       color: Colors.black,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -398,11 +428,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildMenuTile(
-      String title,
-      IconData icon,
-      Color color,
-      VoidCallback onTap,
-      ) {
+    String title,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
