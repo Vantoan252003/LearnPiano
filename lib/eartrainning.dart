@@ -13,7 +13,8 @@ class EarTrainning extends StatefulWidget {
 class _EarTrainningState extends State<EarTrainning> {
   final MidiPro midiPro = MidiPro();
   final AuthService _auth = AuthService();
-  final ValueNotifier<Map<int, String>> loadedSoundfonts = ValueNotifier<Map<int, String>>({});
+  final ValueNotifier<Map<int, String>> loadedSoundfonts =
+      ValueNotifier<Map<int, String>>({});
   final ValueNotifier<int?> selectedSfId = ValueNotifier<int?>(null);
 
   int? randomNote;
@@ -29,6 +30,7 @@ class _EarTrainningState extends State<EarTrainning> {
     'F#': 'Gb',
     'G#': 'Ab',
   };
+  List<Future<dynamic>> _pendingOperations = [];
 
   @override
   void initState() {
@@ -37,6 +39,8 @@ class _EarTrainningState extends State<EarTrainning> {
   }
 
   Future<void> _checkLoginAndLoad() async {
+    if (!mounted) return;
+
     if (_auth.getCurrentUser() == null) {
       Navigator.pushReplacement(
         context,
@@ -50,30 +54,40 @@ class _EarTrainningState extends State<EarTrainning> {
   }
 
   Future<void> _loadHighScore() async {
-    try {
-      int score = await _auth.getHighScore('ear_training');
+    if (!mounted) return;
+
+    int score = await _auth.getHighScore('ear_training');
+    if (mounted) {
       setState(() {
         highScore = score;
       });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi tải điểm số: $e')),
-      );
     }
   }
 
   Future<void> _loadDefaultSoundfont() async {
+    if (!mounted) return;
+
     final int sfId = await loadSoundfont('assets/Grand_Piano.sf2');
-    selectedSfId.value = sfId;
-    _startGame();
+    if (mounted) {
+      selectedSfId.value = sfId;
+      _startGame();
+    }
   }
 
   Future<int> loadSoundfont(String path) async {
     if (loadedSoundfonts.value.containsValue(path)) {
-      return loadedSoundfonts.value.entries.firstWhere((element) => element.value == path).key;
+      return loadedSoundfonts.value.entries
+          .firstWhere((element) => element.value == path)
+          .key;
     }
-    final int sfId = await midiPro.loadSoundfont(path: path, bank: 0, program: 0);
-    loadedSoundfonts.value = {sfId: path, ...loadedSoundfonts.value};
+    final int sfId = await midiPro.loadSoundfont(
+      path: path,
+      bank: 0,
+      program: 0,
+    );
+    if (mounted) {
+      loadedSoundfonts.value = {sfId: path, ...loadedSoundfonts.value};
+    }
     return sfId;
   }
 
@@ -88,31 +102,65 @@ class _EarTrainningState extends State<EarTrainning> {
   }
 
   void _startGame() {
-    if (selectedSfId.value == null) return;
+    if (selectedSfId.value == null || !mounted) return;
+
     setState(() {
       isPlaying = true;
       randomNote = 48 + Random().nextInt(24);
       _generateOptions();
-      playNote(key: randomNote!, sfId: selectedSfId.value!);
-      Future.delayed(const Duration(seconds: 1), () {
-        stopNote(key: randomNote!, sfId: selectedSfId.value!);
-      });
     });
+
+    playNote(key: randomNote!, sfId: selectedSfId.value!);
+
+    var delayedOp = Future.delayed(const Duration(seconds: 1), () {
+      if (mounted && selectedSfId.value != null && randomNote != null) {
+        stopNote(key: randomNote!, sfId: selectedSfId.value!);
+      }
+    });
+    _pendingOperations.add(delayedOp);
   }
 
   void _generateOptions() {
     options.clear();
-    const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const noteNames = [
+      'C',
+      'C#',
+      'D',
+      'D#',
+      'E',
+      'F',
+      'F#',
+      'G',
+      'G#',
+      'A',
+      'A#',
+      'B',
+    ];
     options.addAll(noteNames);
   }
 
   String _midiToNoteName(int midi) {
-    const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const noteNames = [
+      'C',
+      'C#',
+      'D',
+      'D#',
+      'E',
+      'F',
+      'F#',
+      'G',
+      'G#',
+      'A',
+      'A#',
+      'B',
+    ];
     int noteIndex = midi % 12;
     return noteNames[noteIndex];
   }
 
   void _checkAnswer(String selectedOption) {
+    if (!mounted) return;
+
     if (_auth.getCurrentUser() == null) {
       Navigator.pushReplacement(
         context,
@@ -120,6 +168,7 @@ class _EarTrainningState extends State<EarTrainning> {
       );
       return;
     }
+
     String correctAnswer = _midiToNoteName(randomNote!);
     if (selectedOption == correctAnswer) {
       setState(() {
@@ -129,33 +178,41 @@ class _EarTrainningState extends State<EarTrainning> {
           highScore = score;
         }
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Đúng rồi!",
-            style: TextStyle(fontSize: 16, color: Colors.green),
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Đúng rồi!",
+              style: TextStyle(fontSize: 16, color: Colors.green),
+            ),
+            duration: Duration(seconds: 1),
           ),
-          duration: Duration(seconds: 1),
-        ),
-      );
+        );
+      }
     } else {
       setState(() {
         totalAttempts++;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "Sai rồi! Đáp án đúng là $correctAnswer",
-            style: TextStyle(color: Colors.red, fontSize: 15),
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "Sai rồi! Đáp án đúng là $correctAnswer",
+              style: TextStyle(color: Colors.red, fontSize: 15),
+            ),
+            duration: Duration(seconds: 1),
           ),
-          duration: Duration(seconds: 1),
-        ),
-      );
+        );
+      }
     }
     _startGame();
   }
 
   void _endQuiz() async {
+    if (!mounted) return;
+
     if (_auth.getCurrentUser() == null) {
       Navigator.pushReplacement(
         context,
@@ -163,25 +220,24 @@ class _EarTrainningState extends State<EarTrainning> {
       );
       return;
     }
-    try {
-      print('Ending quiz, current high score: $highScore');
-      await _auth.updateHighScore('ear_training', highScore);
-      int newHighScore = await _auth.getHighScore('ear_training');
-      print('New high score from Firestore: $newHighScore');
+
+    print('Điểm mới nhất là: $highScore');
+    await _auth.updateHighScore('ear_training', highScore);
+    int newHighScore = await _auth.getHighScore('ear_training');
+    if (mounted) {
       setState(() {
         highScore = newHighScore;
       });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi lưu điểm: $e')),
-      );
     }
-    setState(() {
-      isPlaying = false;
-      score = 0;
-      totalAttempts = 0;
-    });
-    Navigator.pop(context);
+
+    if (mounted) {
+      setState(() {
+        isPlaying = false;
+        score = 0;
+        totalAttempts = 0;
+      });
+      Navigator.pop(context);
+    }
   }
 
   @override
@@ -190,7 +246,10 @@ class _EarTrainningState extends State<EarTrainning> {
       backgroundColor: Colors.grey[900],
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text('Luyện Cảm Âm', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Luyện Cảm Âm',
+          style: TextStyle(color: Colors.white),
+        ),
       ),
       body: ValueListenableBuilder(
         valueListenable: selectedSfId,
@@ -215,10 +274,25 @@ class _EarTrainningState extends State<EarTrainning> {
                   const SizedBox(height: 10),
                   ElevatedButton(
                     onPressed: () {
-                      playNote(key: randomNote!, sfId: selectedSfIdValue);
-                      Future.delayed(const Duration(seconds: 1), () {
-                        stopNote(key: randomNote!, sfId: selectedSfIdValue);
-                      });
+                      if (mounted &&
+                          selectedSfIdValue != null &&
+                          randomNote != null) {
+                        playNote(key: randomNote!, sfId: selectedSfIdValue);
+                        var delayedOp = Future.delayed(
+                          const Duration(seconds: 1),
+                          () {
+                            if (mounted &&
+                                selectedSfIdValue != null &&
+                                randomNote != null) {
+                              stopNote(
+                                key: randomNote!,
+                                sfId: selectedSfIdValue,
+                              );
+                            }
+                          },
+                        );
+                        _pendingOperations.add(delayedOp);
+                      }
                     },
                     child: Text(
                       "Nghe lại",
@@ -242,16 +316,17 @@ class _EarTrainningState extends State<EarTrainning> {
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
                     childAspectRatio: 3,
-                    children: options.map((option) {
-                      return ElevatedButton(
-                        onPressed: () => _checkAnswer(option),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: Text(option),
-                      );
-                    }).toList(),
+                    children:
+                        options.map((option) {
+                          return ElevatedButton(
+                            onPressed: () => _checkAnswer(option),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: Text(option),
+                          );
+                        }).toList(),
                   ),
                   const SizedBox(height: 20),
                   Center(
@@ -267,6 +342,19 @@ class _EarTrainningState extends State<EarTrainning> {
         },
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    if (selectedSfId.value != null && randomNote != null) {
+      stopNote(key: randomNote!, sfId: selectedSfId.value!);
+    }
+
+    if (selectedSfId.value != null) {
+      midiPro.unloadSoundfont(selectedSfId.value!);
+    }
+
+    super.dispose();
   }
 
   Widget _buildNoteRow(String note, String? alternative) {
