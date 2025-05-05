@@ -2,10 +2,13 @@ import 'package:music_xml/music_xml.dart';
 import 'package:xml/xml.dart' as xml;
 
 class MusicXmlParser {
-  static Future<List<Map<String, dynamic>>> parseMusicXml(String xmlContent) async {
+  static Future<List<Map<String, dynamic>>> parseMusicXml(
+    String xmlContent,
+  ) async {
     final document = MusicXmlDocument.parse(xmlContent);
     final scorePartwise = document.score.getElement('score-partwise');
-    if (scorePartwise == null) throw Exception('Invalid MusicXML: No score-partwise found');
+    if (scorePartwise == null)
+      throw Exception('Invalid MusicXML: No score-partwise found');
 
     List<Map<String, dynamic>> midiEvents = [];
     double currentTime = 0.0;
@@ -18,20 +21,30 @@ class MusicXmlParser {
     List<int> repeatEndMeasures = [];
     int measureCount = 0;
 
-    for (var part in scorePartwise.children.whereType<xml.XmlElement>().where((e) => e.name.local == 'part')) {
-      for (var measure in part.children.whereType<xml.XmlElement>().where((e) => e.name.local == 'measure')) {
+    for (var part in scorePartwise.children.whereType<xml.XmlElement>().where(
+      (e) => e.name.local == 'part',
+    )) {
+      for (var measure in part.children.whereType<xml.XmlElement>().where(
+        (e) => e.name.local == 'measure',
+      )) {
         final direction = measure.getElement('direction');
         if (direction != null) {
-          final soundTempo = direction.getElement('sound')?.getAttribute('tempo');
+          final soundTempo = direction
+              .getElement('sound')
+              ?.getAttribute('tempo');
           if (soundTempo != null) {
             baseTempo = double.parse(soundTempo);
             break;
           }
-          final metronome = direction.getElement('direction-type')?.getElement('metronome');
+          final metronome = direction
+              .getElement('direction-type')
+              ?.getElement('metronome');
           if (metronome != null) {
             final beatUnit = metronome.getElement('beat-unit')?.text;
             final perMinute = metronome.getElement('per-minute')?.text;
-            if (beatUnit != null && perMinute != null && beatUnit == 'quarter') {
+            if (beatUnit != null &&
+                perMinute != null &&
+                beatUnit == 'quarter') {
               baseTempo = double.parse(perMinute);
               break;
             }
@@ -41,14 +54,20 @@ class MusicXmlParser {
       if (baseTempo != 120.0) break;
     }
 
-    for (var part in scorePartwise.children.whereType<xml.XmlElement>().where((e) => e.name.local == 'part')) {
+    for (var part in scorePartwise.children.whereType<xml.XmlElement>().where(
+      (e) => e.name.local == 'part',
+    )) {
       measureCount = 0;
-      for (var measure in part.children.whereType<xml.XmlElement>().where((e) => e.name.local == 'measure')) {
+      for (var measure in part.children.whereType<xml.XmlElement>().where(
+        (e) => e.name.local == 'measure',
+      )) {
         measureCount++;
         measureAccidentals.clear();
         int noteIndex = 0; // Đếm chỉ số nốt trong mỗi measure
 
-        for (var barline in measure.children.whereType<xml.XmlElement>().where((e) => e.name.local == 'barline')) {
+        for (var barline in measure.children.whereType<xml.XmlElement>().where(
+          (e) => e.name.local == 'barline',
+        )) {
           final repeat = barline.getElement('repeat');
           if (repeat != null) {
             final direction = repeat.getAttribute('direction');
@@ -63,27 +82,38 @@ class MusicXmlParser {
         final attributes = measure.getElement('attributes');
         if (attributes != null) {
           final divisionsElement = attributes.getElement('divisions');
-          divisions = divisionsElement != null ? int.parse(divisionsElement.text) : divisions;
+          divisions =
+              divisionsElement != null
+                  ? int.parse(divisionsElement.text)
+                  : divisions;
           divisions = divisions > 0 ? divisions : 1;
 
           final keyElement = attributes.getElement('key');
           if (keyElement != null) {
-            final fifths = int.parse(keyElement.getElement('fifths')?.text ?? '0');
+            final fifths = int.parse(
+              keyElement.getElement('fifths')?.text ?? '0',
+            );
             keySignature = _getKeySignatureAlterations(fifths);
           }
         }
 
         final direction = measure.getElement('direction');
         if (direction != null) {
-          final soundTempo = direction.getElement('sound')?.getAttribute('tempo');
+          final soundTempo = direction
+              .getElement('sound')
+              ?.getAttribute('tempo');
           if (soundTempo != null) {
             baseTempo = double.parse(soundTempo);
           }
-          final metronome = direction.getElement('direction-type')?.getElement('metronome');
+          final metronome = direction
+              .getElement('direction-type')
+              ?.getElement('metronome');
           if (metronome != null) {
             final beatUnit = metronome.getElement('beat-unit')?.text;
             final perMinute = metronome.getElement('per-minute')?.text;
-            if (beatUnit != null && perMinute != null && beatUnit == 'quarter') {
+            if (beatUnit != null &&
+                perMinute != null &&
+                beatUnit == 'quarter') {
               baseTempo = double.parse(perMinute);
             }
           }
@@ -96,7 +126,9 @@ class MusicXmlParser {
         for (var element in measure.children.whereType<xml.XmlElement>()) {
           if (element.name.local == 'note') {
             final pitch = element.getElement('pitch');
-            final duration = double.parse(element.getElement('duration')?.text ?? '1');
+            final duration = double.parse(
+              element.getElement('duration')?.text ?? '1',
+            );
             final durationInSeconds = (duration / divisions) * (60 / baseTempo);
             bool isFermata = false;
             bool isStaccato = false;
@@ -112,11 +144,14 @@ class MusicXmlParser {
               if (articulations?.getElement('staccato') != null) {
                 isStaccato = true;
               }
-              for (var slur in notations.children.whereType<xml.XmlElement>().where((e) => e.name.local == 'slur')) {
+              for (var slur in notations.children
+                  .whereType<xml.XmlElement>()
+                  .where((e) => e.name.local == 'slur')) {
                 final type = slur.getAttribute('type');
                 if (type == 'start') {
                   isSlurStart = true;
-                } else if (type == 'stop') isSlurEnd = true;
+                } else if (type == 'stop')
+                  isSlurEnd = true;
               }
             }
 
@@ -157,7 +192,8 @@ class MusicXmlParser {
                       'isSlurStart': isSlurStart,
                       'isSlurEnd': isSlurEnd,
                       'measure': measureCount,
-                      'noteIndex': noteIndex - 1, // Gán noteIndex cho chord trước đó
+                      'noteIndex':
+                          noteIndex - 1, // Gán noteIndex cho chord trước đó
                     });
                     chordNotes.clear();
                   }
@@ -172,10 +208,14 @@ class MusicXmlParser {
               currentTime += durationInSeconds;
             }
           } else if (element.name.local == 'forward') {
-            final duration = double.parse(element.getElement('duration')?.text ?? '0');
+            final duration = double.parse(
+              element.getElement('duration')?.text ?? '0',
+            );
             currentTime += (duration / divisions) * (60 / baseTempo);
           } else if (element.name.local == 'backup') {
-            final duration = double.parse(element.getElement('duration')?.text ?? '0');
+            final duration = double.parse(
+              element.getElement('duration')?.text ?? '0',
+            );
             currentTime -= (duration / divisions) * (60 / baseTempo);
           }
         }
@@ -195,7 +235,11 @@ class MusicXmlParser {
       }
     }
 
-    midiEvents = _processRepeats(tempMidiEvents, repeatStartMeasures, repeatEndMeasures);
+    midiEvents = _processRepeats(
+      tempMidiEvents,
+      repeatStartMeasures,
+      repeatEndMeasures,
+    );
     midiEvents.sort((a, b) => a['startTime'].compareTo(b['startTime']));
     return midiEvents;
   }
@@ -217,13 +261,13 @@ class MusicXmlParser {
   }
 
   static int? _stepToMidiNote(
-      String? step,
-      int octave,
-      Map<String, int> keySignature,
-      String? accidental,
-      Map<String, int> measureAccidentals,
-      String noteKey,
-      ) {
+    String? step,
+    int octave,
+    Map<String, int> keySignature,
+    String? accidental,
+    Map<String, int> measureAccidentals,
+    String noteKey,
+  ) {
     if (step == null) return null;
     const noteMap = {'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11};
     final base = noteMap[step.toUpperCase()];
@@ -236,15 +280,17 @@ class MusicXmlParser {
     }
 
     if (accidental != null) {
-      alteration = {
-        'sharp': 1,
-        'flat': -1,
-        'natural': 0,
-        'double-sharp': 2,
-        'double-flat': -2,
-        'sharp-sharp': 2,
-        'flat-flat': -2,
-      }[accidental] ?? 0;
+      alteration =
+          {
+            'sharp': 1,
+            'flat': -1,
+            'natural': 0,
+            'double-sharp': 2,
+            'double-flat': -2,
+            'sharp-sharp': 2,
+            'flat-flat': -2,
+          }[accidental] ??
+          0;
       measureAccidentals[noteKey] = alteration;
     }
 
@@ -252,10 +298,10 @@ class MusicXmlParser {
   }
 
   static List<Map<String, dynamic>> _processRepeats(
-      List<Map<String, dynamic>> events,
-      List<int> startMeasures,
-      List<int> endMeasures,
-      ) {
+    List<Map<String, dynamic>> events,
+    List<int> startMeasures,
+    List<int> endMeasures,
+  ) {
     List<Map<String, dynamic>> finalEvents = [];
     int currentMeasure = 1;
     int repeatIndex = 0;
@@ -277,10 +323,15 @@ class MusicXmlParser {
       if (endMeasures.contains(measure) && inRepeat) {
         inRepeat = false;
         final startMeasure = startMeasures[repeatIndex - 1];
-        final repeatEvents = events
-            .where((e) => e['measure'] >= startMeasure && e['measure'] <= measure)
-            .toList();
-        final repeatDuration = repeatEvents.last['startTime'] +
+        final repeatEvents =
+            events
+                .where(
+                  (e) =>
+                      e['measure'] >= startMeasure && e['measure'] <= measure,
+                )
+                .toList();
+        final repeatDuration =
+            repeatEvents.last['startTime'] +
             repeatEvents.last['duration'] -
             repeatEvents.first['startTime'];
         timeOffset += repeatDuration;

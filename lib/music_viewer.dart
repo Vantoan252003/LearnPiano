@@ -27,6 +27,8 @@ class MusicViewer extends StatefulWidget {
 
 class _MusicViewerState extends State<MusicViewer> {
   bool _isLoading = true;
+  bool _hasError = false;
+  String? _errorMessage;
   String? _fileContent;
   late MidiHandler _midiHandler;
   List<Map<String, dynamic>> _midiEvents = [];
@@ -42,35 +44,51 @@ class _MusicViewerState extends State<MusicViewer> {
 
   Future<void> _loadMusicFile() async {
     setState(() => _isLoading = true);
-    File fileToRead;
-    if (widget.isLocalFile) {
-      fileToRead = File(widget.filePath);
-    } else {
-      final ref = FirebaseStorage.instance.ref(widget.filePath);
-      final url = await ref.getDownloadURL();
-      final tempDir = await getTemporaryDirectory();
-      fileToRead = File('${tempDir.path}/${widget.fileName}');
-      final response = await http.get(Uri.parse(url));
-      await fileToRead.writeAsBytes(response.bodyBytes);
-    }
-
-    if (widget.fileName.toLowerCase().endsWith('.mxl')) {
-      final bytes = await fileToRead.readAsBytes();
-      final archive = ZipDecoder().decodeBytes(bytes);
-      final xmlFile = archive.firstWhere(
-            (file) => file.name.endsWith('.xml') && !file.name.contains('META-INF'),
-        orElse: () => throw Exception('No MusicXML file found in .mxl archive'),
-      );
-      _fileContent = utf8.decode(xmlFile.content as List<int>);
-      try {
-        _midiEvents = await MusicXmlParser.parseMusicXml(_fileContent!);
-      } catch (e) {
-        print('Error parsing MusicXML: $e');
-        setState(() {
-          _fileContent = null;
-        });
+    
+    try {
+      File fileToRead;
+      if (widget.isLocalFile) {
+        fileToRead = File(widget.filePath);
+      } else {
+        final ref = FirebaseStorage.instance.ref(widget.filePath);
+        final url = await ref.getDownloadURL();
+        final tempDir = await getTemporaryDirectory();
+        fileToRead = File('${tempDir.path}/${widget.fileName}.mxl');
+        final response = await http.get(Uri.parse(url));
+        await fileToRead.writeAsBytes(response.bodyBytes);
       }
+
+      if (widget.filePath.toLowerCase().endsWith('.mxl')) {
+        final bytes = await fileToRead.readAsBytes();
+        final archive = ZipDecoder().decodeBytes(bytes);
+        
+        // Find the MusicXML file in the archive
+        final xmlFile = archive.firstWhere(
+          (file) => file.name.endsWith('.xml') && !file.name.contains('META-INF'),
+          orElse: () => throw Exception('No MusicXML file found in .mxl archive'),
+        );
+        
+        _fileContent = utf8.decode(xmlFile.content as List<int>);
+        
+        try {
+          _midiEvents = await MusicXmlParser.parseMusicXml(_fileContent!);
+        } catch (e) {
+          print('Error parsing MusicXML: $e');
+          setState(() {
+            _hasError = true;
+            _errorMessage = 'Error parsing MusicXML: $e';
+            _fileContent = null;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading music file: $e');
+      setState(() {
+        _hasError = true;
+        _errorMessage = 'Error loading music file: $e';
+      });
     }
+    
     setState(() => _isLoading = false);
   }
 
@@ -90,8 +108,10 @@ class _MusicViewerState extends State<MusicViewer> {
 
   Future<void> _rewindMusic() async {
     if (_isPlaying) {
-      await _playMusic();
+      await _playMusic(); // This stops the music
     }
+    // Reset position
+    _midiHandler.seekToPosition(0, 0);
   }
 
   @override
@@ -103,35 +123,84 @@ class _MusicViewerState extends State<MusicViewer> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.fileName)),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _fileContent == null
-          ? const Center(
-        child: Text(
-          'Error: Unable to parse this MusicXML file. It may contain unsupported elements or special characters.',
+      backgroundColor: Colors.grey[900],
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        title: Text(
+          widget.fileName,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-      )
-          : MusicContent(
-        xmlContent: _fileContent!,
-        onPlay: _playMusic,
-        onRewind: _rewindMusic,
-        isPlaying: _isPlaying,
-        tempoMultiplier: _tempoMultiplier,
-        onTempoChanged: (value) {
-          setState(() {
-            _tempoMultiplier = value;
-            if (_isPlaying) {
-              _playMusic();
-            }
-          });
-        },
-        filePath: widget.filePath,
-        playbackPositionStream: _midiHandler.positionStream,
-        onNoteChanged: (measure, note) {
-          _midiHandler.seekToPosition(measure, note);
-        },
+        iconTheme: const IconThemeData(color: Colors.white),
+        elevation: 0,
       ),
+      body: _isLoading 
+          ? const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(color: Colors.blueGrey),
+                  SizedBox(height: 16),
+                  Text(
+                    'Đang tải bản nhạc...',
+                    style: TextStyle(color: Colors.white),
+                  )
+                ],
+              ),
+            )
+          : _hasError || _fileContent == null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          color: Colors.red,
+                          size: 64,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _errorMessage ?? 'Không thể hiển thị bản nhạc này. Định dạng có thể không được hỗ trợ.',
+                          style: const TextStyle(color: Colors.white),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton(
+                          onPressed: _loadMusicFile,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('Thử lại'),
+                        )
+                      ],
+                    ),
+                  ),
+                )
+              : MusicContent(
+                  xmlContent: _fileContent!,
+                  onPlay: _playMusic,
+                  onRewind: _rewindMusic,
+                  isPlaying: _isPlaying,
+                  tempoMultiplier: _tempoMultiplier,
+                  onTempoChanged: (value) {
+                    setState(() {
+                      _tempoMultiplier = value;
+                      if (_isPlaying) {
+                        _playMusic();
+                      }
+                    });
+                  },
+                  filePath: widget.filePath,
+                  playbackPositionStream: _midiHandler.positionStream,
+                  onNoteChanged: (measure, note) {
+                    _midiHandler.seekToPosition(measure, note);
+                  },
+                ),
     );
   }
 }
