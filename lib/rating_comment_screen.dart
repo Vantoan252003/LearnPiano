@@ -70,9 +70,10 @@ class _RatingCommentScreenState extends State<RatingCommentScreen> {
       return;
     }
     try {
-      await _ratingCommentHandler.saveComment(widget.filePath, _commentController.text);
+      final userRating = await _ratingCommentHandler.getUserRating(widget.filePath);
+      await _ratingCommentHandler.saveComment(widget.filePath, _commentController.text, userRating);
       _commentController.clear();
-      setState(() {}); // Buộc làm mới giao diện
+      setState(() {}); // Làm mới giao diện
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Bình luận đã được gửi')),
       );
@@ -81,6 +82,39 @@ class _RatingCommentScreenState extends State<RatingCommentScreen> {
         SnackBar(content: Text('Lỗi: $e')),
       );
     }
+  }
+
+  Future<void> _deleteComment(String commentDocId) async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Xác nhận xóa'),
+        content: const Text('Bạn có chắc chắn muốn xóa bình luận này?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () async {
+              try {
+                await _ratingCommentHandler.deleteComment(widget.filePath, commentDocId);
+                setState(() {}); // Làm mới giao diện
+                Navigator.pop(context); // Đóng dialog
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Bình luận đã được xóa')),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Lỗi: $e')),
+                );
+              }
+            },
+            child: const Text('Xóa', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showLoginPrompt() {
@@ -191,12 +225,43 @@ class _RatingCommentScreenState extends State<RatingCommentScreen> {
                   itemCount: comments.length,
                   itemBuilder: (context, index) {
                     final comment = comments[index];
+                    final isOwnComment = comment['userId'] == FirebaseAuth.instance.currentUser?.uid;
                     return ListTile(
                       title: Text(comment['displayName']),
-                      subtitle: Text(comment['comment']),
-                      trailing: Text(
-                        comment['timestamp'].toString().substring(0, 16),
-                        style: const TextStyle(fontSize: 12),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(comment['comment']),
+                          RatingBarIndicator(
+                            rating: comment['rating'].toDouble(),
+                            itemBuilder: (context, _) => const Icon(
+                              Icons.star,
+                              color: Colors.amber,
+                            ),
+                            itemCount: 5,
+                            itemSize: 20.0,
+                            direction: Axis.horizontal,
+                          ),
+                        ],
+                      ),
+                      trailing: Padding(
+                        padding: const EdgeInsets.only(left: 24.0), 
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              comment['timestamp'].toString().substring(0, 16),
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            if (isOwnComment) ...[
+                              const SizedBox(width: 0.0), 
+                              IconButton(
+                                icon: const Icon(Icons.delete, color: Colors.red),
+                                onPressed: () => _deleteComment(comment['docId']),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
                     );
                   },

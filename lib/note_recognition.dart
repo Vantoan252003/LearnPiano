@@ -118,7 +118,7 @@ class _NoteRecognitionState extends State<NoteRecognition> {
             ),
             Text(
               "Điểm cao nhất: $highScore",
-              style: const TextStyle(color: Colors.white70, fontSize: 20),
+              style: const TextStyle(color: Colors.white, fontSize: 20),
             ),
             const SizedBox(height: 30),
             GridView.count(
