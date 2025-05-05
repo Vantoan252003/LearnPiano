@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class NoteRecognition extends StatefulWidget {
-  const NoteRecognition({super.key});
+class BassNoteRecognition extends StatefulWidget {
+  const BassNoteRecognition({super.key});
 
   @override
-  _NoteRecognitionState createState() => _NoteRecognitionState();
+  _BassNoteRecognitionState createState() => _BassNoteRecognitionState();
 }
 
-class _NoteRecognitionState extends State<NoteRecognition> {
+class _BassNoteRecognitionState extends State<BassNoteRecognition> {
   final List<String> notes = [
     'C',
     'C#',
@@ -31,6 +31,7 @@ class _NoteRecognitionState extends State<NoteRecognition> {
     'Gb',
     'Ab',
     'Bb',
+    'B#',
   ];
   String? currentNote;
   int score = 0;
@@ -38,8 +39,7 @@ class _NoteRecognitionState extends State<NoteRecognition> {
   String? selectedNote;
   final Random random = Random();
 
-  // Map to handle enharmonic equivalents (notes that sound the same but are written differently)
-  // Cập nhật chính xác các tương đương enharmonic
+  // Map để xử lý các nốt tương đương enharmonic (các nốt có âm thanh giống nhau nhưng được viết khác nhau)
   final Map<String, List<String>> enharmonicEquivalents = {
     'B': ['Cb'],
     'C': [],
@@ -60,6 +60,7 @@ class _NoteRecognitionState extends State<NoteRecognition> {
     'Gb': ['F#'],
     'Ab': ['G#'],
     'Bb': ['A#'],
+    'B#': ['C'],
   };
 
   @override
@@ -86,7 +87,9 @@ class _NoteRecognitionState extends State<NoteRecognition> {
               .get();
       if (doc.exists) {
         setState(() {
-          highScore = doc.data()?['highScore'] ?? 0;
+          highScore =
+              doc.data()?['bassHighScore'] ??
+              0; // Sử dụng bassHighScore thay vì highScore
         });
       }
     }
@@ -96,7 +99,7 @@ class _NoteRecognitionState extends State<NoteRecognition> {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null && score > highScore) {
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'highScore': score,
+        'bassHighScore': score, // Lưu điểm cao nhất cho khóa Fa
       }, SetOptions(merge: true));
       setState(() {
         highScore = score;
@@ -161,7 +164,7 @@ class _NoteRecognitionState extends State<NoteRecognition> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         title: const Text(
-          "Nhận diện nốt nhạc",
+          "Nhận diện nốt nhạc - Khóa Fa",
           style: TextStyle(
             color: Colors.white,
             fontSize: 24,
@@ -176,7 +179,7 @@ class _NoteRecognitionState extends State<NoteRecognition> {
             Container(
               height: 150,
               width: 450,
-              child: CustomPaint(painter: StaffAndNotePainter(currentNote)),
+              child: CustomPaint(painter: BassStaffAndNotePainter(currentNote)),
             ),
             const SizedBox(height: 30),
             Text(
@@ -240,10 +243,10 @@ class _NoteRecognitionState extends State<NoteRecognition> {
   }
 }
 
-class StaffAndNotePainter extends CustomPainter {
+class BassStaffAndNotePainter extends CustomPainter {
   final String? note;
 
-  StaffAndNotePainter(this.note);
+  BassStaffAndNotePainter(this.note);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -262,14 +265,12 @@ class StaffAndNotePainter extends CustomPainter {
         paint,
       );
     }
-
-    // Vẽ khóa Sol (Treble Clef) bằng Text
     TextPainter(
         text: const TextSpan(
-          text: '\u{1D11E}',
+          text: '\u{1D122}',
           style: TextStyle(
             fontFamily: 'MusicalSymbols',
-            fontSize: 105,
+            fontSize: 80,
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
@@ -277,36 +278,33 @@ class StaffAndNotePainter extends CustomPainter {
         textDirection: TextDirection.ltr,
       )
       ..layout()
-      ..paint(canvas, Offset(20, 5 + lineSpacing - 30));
-
+      ..paint(canvas, Offset(20, 5 + 2 * lineSpacing - 60));
     // Vẽ nốt nhạc
     if (note != null) {
-      // Bảng ánh xạ vị trí nốt trên khuông nhạc (Treble Clef)
-      // Cập nhật đúng các vị trí của nốt giáng
       final Map<String, double> notePositions = {
-        'C': 5.0, // C4 - dưới khuông nhạc, 1 đường phụ
-        'C#': 5.0, // C#4 (cùng vị trí với C4, khác dấu hóa)
-        'Db': 4.5, // Db4 (tương đương D4, thấp hơn 1 nửa cung)
-        'D': 4.5, // D4 - dưới khuông nhạc
-        'D#': 4.5, // D#4 (cùng vị trí với D4, khác dấu hóa)
-        'Eb': 4.0, // Eb4 (tương đương với E4, thấp hơn 1 nửa cung)
-        'E': 4.0, // E4
-        'Fb': 3.5, // Fb4 (tương đương với F4, thấp hơn 1 nửa cung)
-        'F': 3.5, // F4 - khoảng trống đầu tiên
-        'F#': 3.5, // F#4 (cùng vị trí với F4, khác dấu hóa)
-        'Gb': 3.0, // Gb4 (tương đương với G4, thấp hơn 1 nửa cung)
-        'G': 3.0, // G4 - đường kẻ 2
-        'G#': 3.0, // G#4 (cùng vị trí với G4, khác dấu hóa)
-        'Ab': 2.5, // Ab4 (tương đương với A4, thấp hơn 1 nửa cung)
-        'A': 2.5, // A4 - khoảng trống thứ 2
-        'A#': 2.5, // A#4 (cùng vị trí với A4, khác dấu hóa)
-        'Bb': 2.0, // Bb4 (tương đương với B4, thấp hơn 1 nửa cung)
-        'B': 2.0, // B4 - đường kẻ 3
-        'Cb': 1.5, // Cb5 (tương đương với C5, thấp hơn 1 nửa cung)
-        'C5': 1.5, // C5 - khoảng trống thứ 3
+        'C': 2.5, // C3 - dòng kẻ 3
+        'C#': 2.5, // đúng
+        'Db': 2.0, //đã đúng
+        'D': 2.0, // đã đúng
+        'D#': 2.0, // đã đúng
+        'Eb': 1.5, // Eb3 (tương đương E3)
+        'E': 1.5, // đã sửa
+        'Fb': 1, //đã đúng
+        'F': 1.0,
+        'F#': 1.0, // đã đúng
+        'Gb': 0.5, //đã đúng
+        'G': 0.5, // đã đúng
+        'G#': 0.5, // đã đúng
+        'Ab': -0, //đúng
+        'A': 0, // đã đúng
+        'A#': -0.5, //đúng
+        'Bb': -0.5, // đã sửa
+        'B': -0.5, // B3 - trên khuông nhạc, cần đường kẻ phụ
+        'Cb': -1.0, // Cb3 (tương đương B3)
+        'B#': -0.5,
       };
 
-      // Map về tên nốt thực (không phụ thuộc dấu hóa) để vẽ đúng vị trí
+      // Map tên nốt thực (không phụ thuộc dấu hóa)
       final Map<String, String> realNoteNames = {
         'C': 'C',
         'C#': 'C',
@@ -326,46 +324,35 @@ class StaffAndNotePainter extends CustomPainter {
         'A#': 'A',
         'Bb': 'B',
         'B': 'B',
-        'Cb': 'C5',
+        'Cb': 'C4',
+        'B#': 'C',
       };
 
       // Lấy vị trí nốt nhạc trên khuông nhạc
       final positionIndex = notePositions[note!] ?? 2.0;
       final yPosition = 5 + positionIndex * lineSpacing;
 
-      // Vẽ đường kẻ phụ TRƯỚC KHI vẽ nốt để nốt được hiển thị đè lên đường kẻ
-      // Vẽ đường kẻ phụ nếu nốt nằm ngoài khuông
-      if (positionIndex >= 4.0 || positionIndex <= 1.0) {
+      if (positionIndex > 4.0 || positionIndex < 0.0) {
         // Xác định các đường kẻ phụ cần vẽ
         List<double> auxiliaryLines = [];
 
-        // Nếu nốt nằm dưới khuông nhạc (C4, D4)
-        if (positionIndex >= 4.0) {
-          // Với C4, cần đường kẻ phụ tại positionIndex 5.0
-          if (positionIndex >= 5.0) {
-            auxiliaryLines.add(5.0);
-          }
-          // Nếu có nốt thấp hơn C4, thêm đường kẻ phụ tiếp theo
-          // (Hiện tại chưa cần thiết trong ứng dụng này)
-
-          // Thêm đường kẻ phụ cho các nốt nằm trên dòng kẻ phụ (C4)
-          if (positionIndex.round() == positionIndex) {
-            auxiliaryLines.add(positionIndex);
+        // Nếu nốt nằm dưới khuông nhạc (dưới G2)
+        if (positionIndex > 4.0) {
+          // Thêm đường kẻ phụ cho các nốt dưới khuông nhạc
+          for (double i = 5.0; i <= positionIndex; i += 1.0) {
+            if (i.round() == i) {
+              auxiliaryLines.add(i);
+            }
           }
         }
 
-        // Nếu nốt nằm trên khuông nhạc (B5, C5 và cao hơn)
-        if (positionIndex <= 1.0) {
-          // Với C5, cần đường kẻ phụ tại positionIndex 1.0
-          if (positionIndex <= 1.0) {
-            auxiliaryLines.add(1.0);
-          }
-          // Nếu có nốt cao hơn C5, thêm đường kẻ phụ tiếp theo
-          // (Hiện tại chưa cần thiết trong ứng dụng này)
-
-          // Thêm đường kẻ phụ cho các nốt nằm trên dòng kẻ phụ
-          if (positionIndex.round() == positionIndex) {
-            auxiliaryLines.add(positionIndex);
+        // Nếu nốt nằm trên khuông nhạc (trên G3)
+        if (positionIndex < 0.0) {
+          // Thêm đường kẻ phụ cho các nốt trên khuông nhạc
+          for (double i = 0.0; i >= positionIndex; i -= 1.0) {
+            if (i.round() == i) {
+              auxiliaryLines.add(i);
+            }
           }
         }
 
@@ -394,14 +381,11 @@ class StaffAndNotePainter extends CustomPainter {
         notePaint,
       );
 
-      // Vẽ chỉ dấu thăng (#) hoặc giáng (b) bên trái nốt
+      // Vẽ dấu thăng (#) hoặc giáng (b) bên trái nốt
       if (note!.contains('#') || note!.contains('b')) {
         TextPainter(
             text: TextSpan(
-              text:
-                  note!.contains('#')
-                      ? '\u{266F}'
-                      : '\u{266D}', // Chỉ vẽ dấu thăng hoặc giáng
+              text: note!.contains('#') ? '\u{266F}' : '\u{266D}',
               style: const TextStyle(
                 fontSize: 40,
                 color: Colors.white,
