@@ -152,20 +152,41 @@ class _RatingCommentScreenState extends State<RatingCommentScreen> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16.0),
-      height: MediaQuery.of(context).size.height * 0.7,
+      padding: const EdgeInsets.all(20.0), // Tăng padding tổng thể
+      height: MediaQuery.of(context).size.height * 0.75, // Tăng chiều cao container
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.0), // Bo góc container
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            spreadRadius: 2,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Đánh giá và Bình luận',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.blueGrey[800],
+            ),
           ),
-          const SizedBox(height: 16),
-          const Text(
+          const SizedBox(height: 20),
+          Text(
             'Đánh giá bản nhạc:',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.blueGrey[600],
+            ),
           ),
+          const SizedBox(height: 10),
           RatingBar.builder(
             initialRating: 0,
             minRating: 1,
@@ -179,34 +200,79 @@ class _RatingCommentScreenState extends State<RatingCommentScreen> {
             ),
             onRatingUpdate: _submitRating,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
             'Đánh giá trung bình: ${_averageRating.toStringAsFixed(1)} sao',
-            style: const TextStyle(fontSize: 14),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Viết bình luận:',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          TextField(
-            controller: _commentController,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: 'Nhập bình luận của bạn...',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.blueGrey[500],
             ),
-            maxLines: 3,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 20),
+          Text(
+            'Viết bình luận:',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.blueGrey[600],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8.0),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  spreadRadius: 1,
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: TextField(
+              controller: _commentController,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.grey[50],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                  borderSide: BorderSide.none,
+                ),
+                hintText: 'Nhập bình luận của bạn...',
+                hintStyle: TextStyle(color: Colors.grey[400]),
+                contentPadding: const EdgeInsets.all(12.0),
+              ),
+              maxLines: 4,
+            ),
+          ),
+          const SizedBox(height: 12),
           ElevatedButton(
             onPressed: _submitComment,
-            child: const Text('Gửi bình luận'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blueGrey[700],
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+              elevation: 3,
+            ),
+            child: const Text(
+              'Gửi bình luận',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
           ),
-          const SizedBox(height: 16),
-          const Text(
+          const SizedBox(height: 20),
+          Text(
             'Bình luận:',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.blueGrey[600],
+            ),
           ),
+          const SizedBox(height: 10),
           Expanded(
             child: StreamBuilder<List<Map<String, dynamic>>>(
               stream: _ratingCommentHandler.getComments(widget.filePath),
@@ -216,7 +282,10 @@ class _RatingCommentScreenState extends State<RatingCommentScreen> {
                 }
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   print('StreamBuilder: Không có dữ liệu bình luận');
-                  return const Text('Chưa có bình luận nào.');
+                  return Text(
+                    'Chưa có bình luận nào.',
+                    style: TextStyle(color: Colors.grey[500]),
+                  );
                 }
                 final comments = snapshot.data!;
                 print('StreamBuilder: Hiển thị ${comments.length} bình luận');
@@ -226,41 +295,75 @@ class _RatingCommentScreenState extends State<RatingCommentScreen> {
                   itemBuilder: (context, index) {
                     final comment = comments[index];
                     final isOwnComment = comment['userId'] == FirebaseAuth.instance.currentUser?.uid;
-                    return ListTile(
-                      title: Text(comment['displayName']),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(comment['comment']),
-                          RatingBarIndicator(
-                            rating: comment['rating'].toDouble(),
-                            itemBuilder: (context, _) => const Icon(
-                              Icons.star,
-                              color: Colors.amber,
-                            ),
-                            itemCount: 5,
-                            itemSize: 20.0,
-                            direction: Axis.horizontal,
-                          ),
-                        ],
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 6.0),
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10.0),
                       ),
-                      trailing: Padding(
-                        padding: const EdgeInsets.only(left: 24.0), 
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              comment['timestamp'].toString().substring(0, 16),
-                              style: const TextStyle(fontSize: 12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: ListTile(
+                          title: Text(
+                            comment['displayName'],
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.blueGrey[800],
                             ),
-                            if (isOwnComment) ...[
-                              const SizedBox(width: 0.0), 
-                              IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.red),
-                                onPressed: () => _deleteComment(comment['docId']),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 4),
+                              Text(
+                                comment['comment'],
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.blueGrey[600],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              RatingBarIndicator(
+                                rating: comment['rating'].toDouble(),
+                                itemBuilder: (context, _) => const Icon(
+                                  Icons.star,
+                                  color: Colors.amber,
+                                ),
+                                itemCount: 5,
+                                itemSize: 18.0,
+                                direction: Axis.horizontal,
                               ),
                             ],
-                          ],
+                          ),
+                          trailing: Padding(
+                            padding: const EdgeInsets.only(left: 0.0), 
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  comment['timestamp'].toString().substring(0, 16),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                                if (isOwnComment) ...[
+                                  const SizedBox(width: 0.0), // Khoảng cách giữa thời gian và nút xóa
+                                  IconButton(
+                                    icon: Icon(
+                                      Icons.delete,
+                                      color: Colors.red[400],
+                                      size: 24.0, // Tăng kích thước icon
+                                    ),
+                                    onPressed: () => _deleteComment(comment['docId']),
+                                    tooltip: 'Xóa bình luận',
+                                    splashRadius: 20.0,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     );
