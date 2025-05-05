@@ -169,10 +169,10 @@ class StaffAndNotePainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     // Vẽ 5 đường kẻ khuông nhạc
-    double lineSpacing = (size.height - 40) / 4; // Giảm khoảng cách để xích lên trên nữa
+    double lineSpacing = (size.height - 40) / 4;
     for (int i = 0; i < 5; i++) {
       canvas.drawLine(
-        Offset(20, 5 + i * lineSpacing), // Xích lên trên hơn bằng cách giảm offset
+        Offset(20, 5 + i * lineSpacing),
         Offset(size.width - 20, 5 + i * lineSpacing),
         paint,
       );
@@ -181,7 +181,7 @@ class StaffAndNotePainter extends CustomPainter {
     // Vẽ khóa Sol (Treble Clef) bằng Text
     TextPainter(
       text: const TextSpan(
-        text: '\u{1D11E}', // Unicode của khóa Sol
+        text: '\u{1D11E}',
         style: TextStyle(
           fontFamily: 'MusicalSymbols',
           fontSize: 105,
@@ -192,51 +192,36 @@ class StaffAndNotePainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     )
       ..layout()
-      ..paint(canvas, Offset(20, 5 + lineSpacing - 30)); // Xích lên trên và căn chỉnh
+      ..paint(canvas, Offset(20, 5 + lineSpacing - 30));
 
     // Vẽ nốt nhạc
     if (note != null) {
       // Bảng ánh xạ vị trí nốt trên khuông nhạc (Treble Clef, từ C4 đến B4)
       final Map<String, double> notePositions = {
-        'C': 4.0,  // Đường kẻ phụ dưới
+        'C': 4.0,   // C4
         'C#': 4.0,
         'Db': 4.0,
         'D': 3.5,
         'D#': 3.5,
         'Eb': 3.5,
-        'E': 3.0,  // Đường kẻ 1
+        'E': 3.0,   // Đường kẻ 1
         'F': 2.5,
         'F#': 2.5,
         'Gb': 2.5,
-        'G': 2.0,  // Đường kẻ 2
+        'G': 2.0,   // Đường kẻ 2
         'G#': 2.0,
         'Ab': 2.0,
         'A': 1.5,
         'A#': 1.5,
         'Bb': 1.5,
-        'B': 1.0,  // Đường kẻ 3
-        'Cb': 1.0,
+        'B': 1.0,   // Đường kẻ 3
+        'Cb': 4.0,  // Sửa thành cùng vị trí với C4
+        // Thêm nốt cao hơn nếu cần
+        'C5': 0.0,  // Trên đường kẻ 5
       };
 
       final positionIndex = notePositions[note!] ?? 2.0;
-      final yPosition = 5 + positionIndex * lineSpacing; // Xích lên trên
-
-      // Vẽ dấu thăng/giáng nếu có
-      if (note!.contains('#') || note!.contains('b')) {
-        TextPainter(
-          text: TextSpan(
-            text: note!.contains('#') ? '\u{266F}' : '\u{266D}', // Dấu thăng hoặc giáng
-            style: const TextStyle(
-              fontSize: 70,
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          textDirection: TextDirection.ltr,
-        )
-          ..layout()
-          ..paint(canvas, Offset(size.width / 2 - 50, yPosition - 35));
-      }
+      final yPosition = 5 + positionIndex * lineSpacing;
 
       // Vẽ nốt (hình elip)
       final notePaint = Paint()
@@ -250,6 +235,23 @@ class StaffAndNotePainter extends CustomPainter {
         ),
         notePaint,
       );
+
+      // Vẽ chỉ dấu thăng (#) hoặc giáng (b) bên phải nốt
+      if (note!.contains('#') || note!.contains('b')) {
+        TextPainter(
+          text: TextSpan(
+            text: note!.contains('#') ? '\u{266F}' : '\u{266D}', // Chỉ vẽ dấu thăng hoặc giáng
+            style: const TextStyle(
+              fontSize: 40,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        )
+          ..layout()
+          ..paint(canvas, Offset(size.width / 2 - 40, yPosition - 34));
+      }
 
       // Vẽ đường kẻ phụ nếu nốt nằm ngoài khuông
       if (positionIndex >= 4.0) {
