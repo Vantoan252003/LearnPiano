@@ -26,7 +26,9 @@ class _RatingCommentScreenState extends State<RatingCommentScreen> {
   }
 
   Future<void> _loadAverageRating() async {
-    final avgRating = await _ratingCommentHandler.getAverageRating(widget.filePath);
+    final avgRating = await _ratingCommentHandler.getAverageRating(
+      widget.filePath,
+    );
     if (mounted) {
       setState(() {
         _averageRating = avgRating;
@@ -36,7 +38,9 @@ class _RatingCommentScreenState extends State<RatingCommentScreen> {
 
   Future<void> _submitRating(double rating) async {
     final user = FirebaseAuth.instance.currentUser;
-    print('submitRating: user = ${user?.uid}, displayName = ${user?.displayName}');
+    print(
+      'submitRating: user = ${user?.uid}, displayName = ${user?.displayName}',
+    );
     if (user == null) {
       print('submitRating: Yêu cầu đăng nhập');
       _showLoginPrompt();
@@ -45,101 +49,118 @@ class _RatingCommentScreenState extends State<RatingCommentScreen> {
     try {
       await _ratingCommentHandler.saveRating(widget.filePath, rating.toInt());
       await _loadAverageRating();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đánh giá đã được lưu')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đánh giá đã được lưu')));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
     }
   }
 
   Future<void> _submitComment() async {
     final user = FirebaseAuth.instance.currentUser;
-    print('submitComment: user = ${user?.uid}, displayName = ${user?.displayName}');
+    print(
+      'submitComment: user = ${user?.uid}, displayName = ${user?.displayName}',
+    );
     if (user == null) {
       print('submitComment: Yêu cầu đăng nhập');
       _showLoginPrompt();
       return;
     }
     if (_commentController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng nhập bình luận')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Vui lòng nhập bình luận')));
       return;
     }
     try {
-      final userRating = await _ratingCommentHandler.getUserRating(widget.filePath);
-      await _ratingCommentHandler.saveComment(widget.filePath, _commentController.text, userRating);
+      final userRating = await _ratingCommentHandler.getUserRating(
+        widget.filePath,
+      );
+      await _ratingCommentHandler.saveComment(
+        widget.filePath,
+        _commentController.text,
+        userRating,
+      );
       _commentController.clear();
       setState(() {}); // Làm mới giao diện
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Bình luận đã được gửi')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Bình luận đã được gửi')));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
     }
   }
 
   Future<void> _deleteComment(String commentDocId) async {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Xác nhận xóa'),
-        content: const Text('Bạn có chắc chắn muốn xóa bình luận này?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Hủy'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Xác nhận xóa'),
+            content: const Text('Bạn có chắc chắn muốn xóa bình luận này?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Hủy'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  try {
+                    await _ratingCommentHandler.deleteComment(
+                      widget.filePath,
+                      commentDocId,
+                    );
+                    setState(() {}); // Làm mới giao diện
+                    Navigator.pop(context); // Đóng dialog
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Bình luận đã được xóa')),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+                  }
+                },
+                child: const Text('Xóa', style: TextStyle(color: Colors.red)),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () async {
-              try {
-                await _ratingCommentHandler.deleteComment(widget.filePath, commentDocId);
-                setState(() {}); // Làm mới giao diện
-                Navigator.pop(context); // Đóng dialog
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Bình luận đã được xóa')),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Lỗi: $e')),
-                );
-              }
-            },
-            child: const Text('Xóa', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
   }
 
   void _showLoginPrompt() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Yêu cầu đăng nhập'),
-        content: const Text('Vui lòng đăng nhập để đánh giá hoặc bình luận.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Hủy'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Yêu cầu đăng nhập'),
+            content: const Text(
+              'Vui lòng đăng nhập để đánh giá hoặc bình luận.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Hủy'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LoginScreen(),
+                    ),
+                  );
+                },
+                child: const Text('Đăng nhập'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-              );
-            },
-            child: const Text('Đăng nhập'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -152,20 +173,8 @@ class _RatingCommentScreenState extends State<RatingCommentScreen> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20.0), // Tăng padding tổng thể
-      height: MediaQuery.of(context).size.height * 0.75, // Tăng chiều cao container
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.0), // Bo góc container
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 2,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.all(16.0),
+      height: MediaQuery.of(context).size.height * 0.9,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -194,10 +203,8 @@ class _RatingCommentScreenState extends State<RatingCommentScreen> {
             allowHalfRating: false,
             itemCount: 5,
             itemPadding: const EdgeInsets.symmetric(horizontal: 4.0),
-            itemBuilder: (context, _) => const Icon(
-              Icons.star,
-              color: Colors.amber,
-            ),
+            itemBuilder:
+                (context, _) => const Icon(Icons.star, color: Colors.amber),
             onRatingUpdate: _submitRating,
           ),
           const SizedBox(height: 10),
@@ -294,76 +301,47 @@ class _RatingCommentScreenState extends State<RatingCommentScreen> {
                   itemCount: comments.length,
                   itemBuilder: (context, index) {
                     final comment = comments[index];
-                    final isOwnComment = comment['userId'] == FirebaseAuth.instance.currentUser?.uid;
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 6.0),
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.0),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: ListTile(
-                          title: Text(
-                            comment['displayName'],
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.blueGrey[800],
-                            ),
+                    final isOwnComment =
+                        comment['userId'] ==
+                        FirebaseAuth.instance.currentUser?.uid;
+                    return ListTile(
+                      title: Text(comment['displayName']),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(comment['comment']),
+                          RatingBarIndicator(
+                            rating: comment['rating'].toDouble(),
+                            itemBuilder:
+                                (context, _) =>
+                                    const Icon(Icons.star, color: Colors.amber),
+                            itemCount: 5,
+                            itemSize: 20.0,
+                            direction: Axis.horizontal,
                           ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 4),
-                              Text(
-                                comment['comment'],
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.blueGrey[600],
+                        ],
+                      ),
+                      trailing: Padding(
+                        padding: const EdgeInsets.only(left: 24.0),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              comment['timestamp'].toString().substring(0, 16),
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            if (isOwnComment) ...[
+                              const SizedBox(width: 0.0),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
                                 ),
-                              ),
-                              const SizedBox(height: 8),
-                              RatingBarIndicator(
-                                rating: comment['rating'].toDouble(),
-                                itemBuilder: (context, _) => const Icon(
-                                  Icons.star,
-                                  color: Colors.amber,
-                                ),
-                                itemCount: 5,
-                                itemSize: 18.0,
-                                direction: Axis.horizontal,
+                                onPressed:
+                                    () => _deleteComment(comment['docId']),
                               ),
                             ],
-                          ),
-                          trailing: Padding(
-                            padding: const EdgeInsets.only(left: 0.0), 
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  comment['timestamp'].toString().substring(0, 16),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[500],
-                                  ),
-                                ),
-                                if (isOwnComment) ...[
-                                  const SizedBox(width: 0.0), // Khoảng cách giữa thời gian và nút xóa
-                                  IconButton(
-                                    icon: Icon(
-                                      Icons.delete,
-                                      color: Colors.red[400],
-                                      size: 24.0, // Tăng kích thước icon
-                                    ),
-                                    onPressed: () => _deleteComment(comment['docId']),
-                                    tooltip: 'Xóa bình luận',
-                                    splashRadius: 20.0,
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
+                          ],
                         ),
                       ),
                     );
