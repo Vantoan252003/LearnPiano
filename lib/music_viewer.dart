@@ -44,7 +44,7 @@ class _MusicViewerState extends State<MusicViewer> {
 
   Future<void> _loadMusicFile() async {
     setState(() => _isLoading = true);
-    
+
     try {
       File fileToRead;
       if (widget.isLocalFile) {
@@ -61,15 +61,17 @@ class _MusicViewerState extends State<MusicViewer> {
       if (widget.filePath.toLowerCase().endsWith('.mxl')) {
         final bytes = await fileToRead.readAsBytes();
         final archive = ZipDecoder().decodeBytes(bytes);
-        
+
         // Find the MusicXML file in the archive
         final xmlFile = archive.firstWhere(
-          (file) => file.name.endsWith('.xml') && !file.name.contains('META-INF'),
-          orElse: () => throw Exception('No MusicXML file found in .mxl archive'),
+          (file) =>
+              file.name.endsWith('.xml') && !file.name.contains('META-INF'),
+          orElse:
+              () => throw Exception('No MusicXML file found in .mxl archive'),
         );
-        
+
         _fileContent = utf8.decode(xmlFile.content as List<int>);
-        
+
         try {
           _midiEvents = await MusicXmlParser.parseMusicXml(_fileContent!);
         } catch (e) {
@@ -88,7 +90,7 @@ class _MusicViewerState extends State<MusicViewer> {
         _errorMessage = 'Error loading music file: $e';
       });
     }
-    
+
     setState(() => _isLoading = false);
   }
 
@@ -136,71 +138,73 @@ class _MusicViewerState extends State<MusicViewer> {
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
       ),
-      body: _isLoading 
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(color: Colors.blueGrey),
-                  SizedBox(height: 16),
-                  Text(
-                    'Đang tải bản nhạc...',
-                    style: TextStyle(color: Colors.white),
-                  )
-                ],
-              ),
-            )
-          : _hasError || _fileContent == null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          color: Colors.red,
-                          size: 64,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _errorMessage ?? 'Không thể hiển thị bản nhạc này. Định dạng có thể không được hỗ trợ.',
-                          style: const TextStyle(color: Colors.white),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 24),
-                        ElevatedButton(
-                          onPressed: _loadMusicFile,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text('Thử lại'),
-                        )
-                      ],
+      body:
+          _isLoading
+              ? const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(color: Colors.blueGrey),
+                    SizedBox(height: 16),
+                    Text(
+                      'Đang tải bản nhạc...',
+                      style: TextStyle(color: Colors.white),
                     ),
-                  ),
-                )
-              : MusicContent(
-                  xmlContent: _fileContent!,
-                  onPlay: _playMusic,
-                  onRewind: _rewindMusic,
-                  isPlaying: _isPlaying,
-                  tempoMultiplier: _tempoMultiplier,
-                  onTempoChanged: (value) {
-                    setState(() {
-                      _tempoMultiplier = value;
-                      if (_isPlaying) {
-                        _playMusic();
-                      }
-                    });
-                  },
-                  filePath: widget.filePath,
-                  playbackPositionStream: _midiHandler.positionStream,
-                  onNoteChanged: (measure, note) {
-                    _midiHandler.seekToPosition(measure, note);
-                  },
+                  ],
                 ),
+              )
+              : _hasError || _fileContent == null
+              ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        color: Colors.red,
+                        size: 64,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _errorMessage ??
+                            'Không thể hiển thị bản nhạc này. Định dạng có thể không được hỗ trợ.',
+                        style: const TextStyle(color: Colors.white),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: _loadMusicFile,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Thử lại'),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              : MusicContent(
+                xmlContent: _fileContent!,
+                onPlay: _playMusic,
+                onRewind: _rewindMusic,
+                isPlaying: _isPlaying,
+                tempoMultiplier: _tempoMultiplier,
+                onTempoChanged: (value) {
+                  setState(() {
+                    _tempoMultiplier = value;
+                    if (_isPlaying) {
+                      _playMusic();
+                    }
+                  });
+                },
+                filePath: widget.filePath,
+                playbackPositionStream: _midiHandler.positionStream,
+                onNoteChanged: (measure, note) {
+                  _midiHandler.seekToPosition(measure, note);
+                },
+              ),
     );
   }
 }

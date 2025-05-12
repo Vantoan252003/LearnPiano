@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'music_viewer.dart';
+import 'sheet_music.dart';
 
 class PlaySheet extends StatefulWidget {
   const PlaySheet({super.key});
@@ -11,59 +12,53 @@ class PlaySheet extends StatefulWidget {
 
 class _PlaySheetState extends State<PlaySheet> {
   Future<List<Map<String, dynamic>>> fetchMusicFiles() async {
-    try {
-      final storageRef = FirebaseStorage.instance.ref().child('mxl');
-      final listResult = await storageRef.listAll();
-      List<Map<String, dynamic>> files = [];
+    final storageRef = FirebaseStorage.instance.ref().child('mxl');
+    final listResult = await storageRef.listAll();
+    List<Map<String, dynamic>> files = [];
 
-      for (var item in listResult.items) {
-        if (item.name.toLowerCase().endsWith('.mxl')) {
-          // Get thumbnail URL if it exists (named same as MXL but with .png or .jpg extension)
-          String thumbnailUrl = '';
+    for (var item in listResult.items) {
+      if (item.name.toLowerCase().endsWith('.mxl')) {
+        // Get thumbnail URL if it exists (named same as MXL but with .png or .jpg extension)
+        String thumbnailUrl = '';
+        try {
+          final pngRef = FirebaseStorage.instance.ref().child(
+            'thumbnails/${item.name.replaceAll('.mxl', '.png')}',
+          );
+          thumbnailUrl = await pngRef.getDownloadURL();
+        } catch (e) {
+          // If PNG not found, try JPG
           try {
-            final thumbnailRef = FirebaseStorage.instance.ref().child(
-              'thumbnails/${item.name.replaceAll('.mxl', '.png')}',
+            final jpgRef = FirebaseStorage.instance.ref().child(
+              'thumbnails/${item.name.replaceAll('.mxl', '.jpg')}',
             );
-            thumbnailUrl = await thumbnailRef.getDownloadURL();
+            thumbnailUrl = await jpgRef.getDownloadURL();
           } catch (e) {
-            // If PNG not found, try JPG
-            try {
-              final thumbnailRef = FirebaseStorage.instance.ref().child(
-                'thumbnails/${item.name.replaceAll('.mxl', '.jpg')}',
-              );
-              thumbnailUrl = await thumbnailRef.getDownloadURL();
-            } catch (e) {
-              // No thumbnail found, will use default
-              print('No thumbnail found for ${item.name}');
-            }
+            // No thumbnail found, leave as empty string
           }
-
-          // Remove .mxl extension for display name
-          String displayName = item.name.replaceAll('.mxl', '');
-          // Format the display name nicely (capitalize first letter of each word)
-          displayName = displayName
-              .split('_')
-              .map(
-                (word) =>
-                    word.isNotEmpty
-                        ? '${word[0].toUpperCase()}${word.substring(1)}'
-                        : '',
-              )
-              .join(' ');
-
-          files.add({
-            'name': item.name,
-            'displayName': displayName,
-            'fullPath': item.fullPath,
-            'thumbnailUrl': thumbnailUrl,
-          });
         }
+
+        // Remove .mxl extension for display name
+        String displayName = item.name.replaceAll('.mxl', '');
+        // Format the display name nicely (capitalize first letter of each word)
+        displayName = displayName
+            .split('_')
+            .map(
+              (word) =>
+                  word.isNotEmpty
+                      ? '${word[0].toUpperCase()}${word.substring(1)}'
+                      : '',
+            )
+            .join(' ');
+
+        files.add({
+          'name': item.name,
+          'displayName': displayName,
+          'fullPath': item.fullPath,
+          'thumbnailUrl': thumbnailUrl,
+        });
       }
-      return files;
-    } catch (e) {
-      print('Error fetching music files: $e');
-      throw Exception('Failed to fetch music files: $e');
     }
+    return files;
   }
 
   @override
@@ -72,18 +67,40 @@ class _PlaySheetState extends State<PlaySheet> {
       backgroundColor: Colors.grey[900],
       appBar: AppBar(
         backgroundColor: Colors.black,
+        elevation: 2,
         title: const Text(
-          'Phát Sheet Nhạc',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          'Thư viện Sheet Nhạc',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 28,
+            letterSpacing: 1.1,
+          ),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.upload_file,
+              color: Colors.orangeAccent,
+              size: 30,
+            ),
+            tooltip: 'Upload sheet nhạc',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SheetMusic()),
+              );
+            },
+          ),
+        ],
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: fetchMusicFiles(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(color: Colors.blueGrey),
+              child: CircularProgressIndicator(color: Colors.orangeAccent),
             );
           } else if (snapshot.hasError) {
             return Center(
@@ -105,23 +122,55 @@ class _PlaySheetState extends State<PlaySheet> {
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orangeAccent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
                       onPressed: () => setState(() {}),
-                      child: const Text('Thử lại'),
+                      child: const Text(
+                        'Thử lại',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   ],
                 ),
               ),
             );
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.music_note_outlined, color: Colors.grey, size: 48),
-                  SizedBox(height: 16),
-                  Text(
-                    'Không tìm thấy file sheet nhạc.',
-                    style: TextStyle(color: Colors.white),
+                  Icon(Icons.library_music, color: Colors.grey[700], size: 64),
+                  const SizedBox(height: 18),
+                  const Text(
+                    'Chưa có sheet nhạc nào. Hãy upload sheet nhạc đầu tiên!',
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 18),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orangeAccent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    icon: const Icon(Icons.upload_file, color: Colors.white),
+                    label: const Text(
+                      'Upload sheet nhạc',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SheetMusic(),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -129,19 +178,19 @@ class _PlaySheetState extends State<PlaySheet> {
           } else {
             final files = snapshot.data!;
             return ListView.builder(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               itemCount: files.length,
               itemBuilder: (context, index) {
                 final file = files[index];
                 return Card(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  color: Colors.black.withOpacity(0.5),
-                  elevation: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  color: Colors.grey[850],
+                  elevation: 6,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -157,31 +206,30 @@ class _PlaySheetState extends State<PlaySheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Sheet music thumbnail or placeholder
                         ClipRRect(
                           borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(12),
+                            top: Radius.circular(16),
                           ),
                           child:
                               file['thumbnailUrl'].isNotEmpty
                                   ? Image.network(
                                     file['thumbnailUrl'],
-                                    height: 150,
+                                    height: 160,
                                     width: double.infinity,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        height: 150,
-                                        color: Colors.grey[800],
-                                        child: const Center(
-                                          child: Icon(
-                                            Icons.music_note,
-                                            size: 48,
-                                            color: Colors.white70,
-                                          ),
-                                        ),
-                                      );
-                                    },
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            Container(
+                                              height: 160,
+                                              color: Colors.grey[800],
+                                              child: const Center(
+                                                child: Icon(
+                                                  Icons.music_note,
+                                                  size: 48,
+                                                  color: Colors.white70,
+                                                ),
+                                              ),
+                                            ),
                                     loadingBuilder: (
                                       context,
                                       child,
@@ -189,18 +237,18 @@ class _PlaySheetState extends State<PlaySheet> {
                                     ) {
                                       if (loadingProgress == null) return child;
                                       return Container(
-                                        height: 150,
+                                        height: 160,
                                         color: Colors.grey[800],
                                         child: const Center(
                                           child: CircularProgressIndicator(
-                                            color: Colors.blueGrey,
+                                            color: Colors.orangeAccent,
                                           ),
                                         ),
                                       );
                                     },
                                   )
                                   : Container(
-                                    height: 150,
+                                    height: 160,
                                     color: Colors.grey[800],
                                     child: const Center(
                                       child: Icon(
@@ -211,10 +259,8 @@ class _PlaySheetState extends State<PlaySheet> {
                                     ),
                                   ),
                         ),
-
-                        // Music title and details
                         Padding(
-                          padding: const EdgeInsets.all(16.0),
+                          padding: const EdgeInsets.all(18.0),
                           child: Row(
                             children: [
                               Expanded(
@@ -225,15 +271,15 @@ class _PlaySheetState extends State<PlaySheet> {
                                       file['displayName'],
                                       style: const TextStyle(
                                         color: Colors.white,
-                                        fontSize: 18,
+                                        fontSize: 20,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                    const SizedBox(height: 4),
+                                    const SizedBox(height: 6),
                                     Text(
-                                      'Nhấn để phát',
+                                      'Nhấn để xem & phát sheet nhạc',
                                       style: TextStyle(
-                                        color: Colors.blue[200],
+                                        color: Colors.orange[200],
                                         fontSize: 14,
                                       ),
                                     ),
@@ -243,7 +289,7 @@ class _PlaySheetState extends State<PlaySheet> {
                               const Icon(
                                 Icons.keyboard_arrow_right,
                                 color: Colors.white70,
-                                size: 28,
+                                size: 32,
                               ),
                             ],
                           ),
@@ -255,6 +301,20 @@ class _PlaySheetState extends State<PlaySheet> {
               },
             );
           }
+        },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Colors.orangeAccent,
+        icon: const Icon(Icons.upload_file, color: Colors.white),
+        label: const Text(
+          'Upload sheet nhạc',
+          style: TextStyle(color: Colors.white),
+        ),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const SheetMusic()),
+          );
         },
       ),
     );
